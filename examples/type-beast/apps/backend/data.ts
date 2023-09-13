@@ -23,6 +23,7 @@ const schema = a.schema({
     bingo: a.string(),
     anotherField: a.string().optional(),
     subComments: a.hasMany('SubComment'),
+    post: a.belongsTo('Post'),
   }),
   SubComment: a.model({
     id: a.id(),
@@ -37,6 +38,8 @@ const schema = a.schema({
   }),
 });
 
+// Can we surfce an error here if relationship is referencing nonexistent model
+// i.e. if I make a typo a.hasMany('Comments') instead of 'Comment'
 export type Schema = ClientSchema<typeof schema>;
 
 export default defineData({

@@ -34,11 +34,11 @@ type FieldData = {
   optional: boolean;
   array: boolean;
   arrayOptional: boolean;
-  default: undefined | string;
+  default: undefined | ModelFieldTypeParamOuter;
 };
 
-// testing something TODO: remove
 type ModelFieldTypeParamInner = string | number | boolean | Date | null;
+
 type ModelFieldTypeParamOuter =
   | ModelFieldTypeParamInner
   | Array<ModelFieldTypeParamInner>
@@ -55,14 +55,14 @@ type ToArray<T> = [T] extends [ModelFieldTypeParamInner] ? Array<T> : never;
  */
 export type ModelField<
   T extends ModelFieldTypeParamOuter,
-  // rename K
   K extends keyof ModelField<T> = never
 > = Omit<
   {
     optional(): ModelField<T | null, K | 'optional'>;
     // Exclude `optional` after calling array, because both the value and the array itself can be optional
     array(): ModelField<ToArray<T>, Exclude<K, 'optional'> | 'array'>;
-    default(val: string): ModelField<T, K | 'default'>;
+    // TODO: should be T, but .array breaks this constraint. Fix later
+    default(val: ModelFieldTypeParamOuter): ModelField<T, K | 'default'>;
   },
   K
 >;

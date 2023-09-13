@@ -35,7 +35,7 @@ export type ModelSchema<T extends ModelSchemaParamShape> = {
 function _schema<T extends ModelSchemaParamShape>(models: T['models']) {
   const data: ModelSchemaData = { models };
 
-  return { data } as ModelSchema<T>;
+  return { data } as Prettify<InternalSchema> as ModelSchema<T>;
 }
 
 export function schema<Models extends ModelSchemaModels>(

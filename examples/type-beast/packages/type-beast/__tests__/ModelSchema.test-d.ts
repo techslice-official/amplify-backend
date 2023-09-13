@@ -1,4 +1,4 @@
-import { Equal, Expect } from '../src/util';
+import { Equal, Expect, Prettify } from '../src/util';
 import { type ModelType, type InternalModel, model } from '../src/ModelType';
 import { type ModelField, type InternalField, fields } from '../src/ModelField';
 import {
@@ -19,8 +19,6 @@ const { string, id } = fields;
  *
  */
 
-describe('', () => {});
-
 describe('basic functionality', () => {
   const { id, string } = fields;
 
@@ -31,5 +29,7 @@ describe('basic functionality', () => {
         title: string(),
       }),
     });
+
+    const is = s as InternalSchema;
   });
 });

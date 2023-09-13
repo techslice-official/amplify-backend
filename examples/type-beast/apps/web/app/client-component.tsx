@@ -22,8 +22,8 @@ const client = API.generateClient<Schema>();
 type Blog = Schema['Blog'];
 type Post = Schema['Post'];
 type Comment = Schema['Comment'];
-type SubComment = Schema['SubComment']
-type SubSubComment = Schema['SubSubComment']
+type SubComment = Schema['SubComment'];
+type SubSubComment = Schema['SubSubComment'];
 
 export function ClientComponent(): JSX.Element {
   const [res, setRes] = useState<any>();
@@ -46,12 +46,14 @@ export function ClientComponent(): JSX.Element {
       const post = await client.models.Post.get({ id: latest.id });
 
       console.log('Post', post);
-      
+
       const [comment] = await post.comments();
-      const subComments = await comment.subComments()
-      
-      const commentGet = await client.models.Comment.get({id: "someId"});
-      const subComs = await commentGet.subComments()
+
+      console.log('Post Comment', comment);
+
+      const cPost = await comment.post();
+
+      console.log('C Post', cPost);
 
       setRes(post);
     },
