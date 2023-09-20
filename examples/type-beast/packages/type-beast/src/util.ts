@@ -62,3 +62,7 @@ export type IsAny<T> = 0 extends 1 & T ? true : false;
 export type NotAny<T> = true extends IsAny<T> ? false : true;
 
 export type Debug<T> = { [K in keyof T]: T[K] };
+
+export type ObjectIsNonEmpty<T extends {}> = keyof T extends never
+  ? false
+  : true;

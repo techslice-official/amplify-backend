@@ -19,11 +19,11 @@ Amplify.Logger.LOG_LEVEL = 'DEBUG';
 
 const client = API.generateClient<Schema>();
 
-type Blog = Schema['Blog'];
+// type Blog = Schema['Blog'];
 type Post = Schema['Post'];
 type Comment = Schema['Comment'];
-type SubComment = Schema['SubComment'];
-type SubSubComment = Schema['SubSubComment'];
+// type SubComment = Schema['SubComment'];
+// type SubSubComment = Schema['SubSubComment'];
 
 export function ClientComponent(): JSX.Element {
   const [res, setRes] = useState<any>();
@@ -54,6 +54,10 @@ export function ClientComponent(): JSX.Element {
       const cPost = await comment.post();
 
       console.log('C Post', cPost);
+
+      const author = await cPost.author();
+
+      console.log('author', author);
 
       setRes(post);
     },

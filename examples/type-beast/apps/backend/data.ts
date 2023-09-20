@@ -1,13 +1,6 @@
 import { default as a, ClientSchema, defineData } from 'type-beast';
 
 const schema = a.schema({
-  Blog: a
-    .model({
-      id: a.id(),
-      title: a.string(),
-      posts: a.hasMany('Post'),
-    })
-    .identifier(['id']),
   Post: a
     .model({
       id: a.id(),
@@ -15,27 +8,26 @@ const schema = a.schema({
       summary: a.string().optional(),
       viewCount: a.integer().optional(),
       comments: a.hasMany('Comment'),
+      comments2: a.hasMany('Comment'),
+      author: a.hasOne('User'),
     })
     .identifier(['id'])
     .authorization([a.allow.public()]),
-  Comment: a.model({
-    id: a.id(),
-    bingo: a.string(),
-    anotherField: a.string().optional(),
-    subComments: a.hasMany('SubComment'),
-    post: a.belongsTo('Post'),
-  }),
-  SubComment: a.model({
-    id: a.id(),
-    bingo: a.string(),
-    anotherField: a.string().optional(),
-    subSubComments: a.hasMany('SubSubComment'),
-  }),
-  SubSubComment: a.model({
-    id: a.id(),
-    bingo: a.string(),
-    anotherField: a.string().optional(),
-  }),
+  Comment: a
+    .model({
+      id: a.id(),
+      bingo: a.string(),
+      anotherField: a.string().optional(),
+      post: a.belongsTo('Post'),
+    })
+    .authorization([a.allow.public()]),
+  User: a
+    .model({
+      id: a.id(),
+      name: a.string(),
+      post: a.belongsTo('Post'),
+    })
+    .authorization([a.allow.public()]),
 });
 
 // Can we surfce an error here if relationship is referencing nonexistent model
@@ -45,3 +37,10 @@ export type Schema = ClientSchema<typeof schema>;
 export default defineData({
   schema,
 });
+
+/* 
+
+Reminders:
+* Implement hasone, belongsTo get
+* Implement many-many
+*/

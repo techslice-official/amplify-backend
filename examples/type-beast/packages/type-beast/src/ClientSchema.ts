@@ -1,5 +1,10 @@
 import type { ImpliedAuthFields } from './Authorization';
-import type { Prettify, UnionToIntersection, ExcludeEmpty } from './util';
+import type {
+  Prettify,
+  UnionToIntersection,
+  ExcludeEmpty,
+  ObjectIsNonEmpty,
+} from './util';
 import type { ModelField } from './ModelField';
 import type {
   ModelRelationalField,
@@ -43,32 +48,68 @@ export type ClientSchema<
   }
 >;
 
-type ExtractRelationalMetadata<Fields, ResolvedFields> = UnionToIntersection<
-  ExcludeEmpty<
-    {
-      [ModelName in keyof Fields]: {
-        [Field in keyof Fields[ModelName] as Fields[ModelName][Field] extends ModelRelationalFieldParamShape
-          ? Fields[ModelName][Field]['relationshipType'] extends 'hasMany'
-            ? Fields[ModelName][Field]['relatedModel']
-            : never
-          : never]: Fields[ModelName][Field] extends ModelRelationalFieldParamShape
-          ? ModelName extends keyof ResolvedFields
-            ? {
-                relationships: Partial<
-                  Record<
-                    `${Lowercase<ModelName & string>}${Capitalize<
-                      Field & string
-                    >}Id`,
-                    string
-                  >
-                >;
-              }
-            : never
-          : never;
-      };
-    }[keyof Fields]
-  >
->;
+/* 
+  Checks if `RelatedModel` has a HasMany relationship to `ModelName`
+  We only generate FK fields for bi-directional hasOne. For HasMany relationships the existing FK is re-used to establish the relationship
+*/
+type IsBidirectionalHasMany<
+  ModelName extends string,
+  RelatedModelFields
+  // If the object IS empty, that means RelatedModelFields does not have a HasMany relationship to ModelName
+> = ObjectIsNonEmpty<{
+  [Field in keyof RelatedModelFields as RelatedModelFields[Field] extends ModelRelationalFieldParamShape & {
+    relationshipType: 'hasMany';
+    relatedModel: ModelName;
+  }
+    ? Field
+    : never]: RelatedModelFields[Field];
+}>;
+
+type ExtractRelationalMetadata<FlattenedSchema, ResolvedFields> =
+  UnionToIntersection<
+    ExcludeEmpty<
+      {
+        [ModelName in keyof FlattenedSchema]: {
+          [Field in keyof FlattenedSchema[ModelName] as FlattenedSchema[ModelName][Field] extends ModelRelationalFieldParamShape
+            ? FlattenedSchema[ModelName][Field]['relationshipType'] extends 'hasMany'
+              ? // For hasMany we're adding metadata to the related model
+                // E.g. if Post hasMany Comments, we need to add a postCommentsId field to the Comment model
+                FlattenedSchema[ModelName][Field]['relatedModel']
+              : FlattenedSchema[ModelName][Field]['relationshipType'] extends 'hasOne'
+              ? // For hasOne we're adding metadata to the model itself
+                // E.g. if Post hasOne Author, we need to add a postAuthorId field to the Post model
+                ModelName
+              : // For belongsTo there are some nuances - we only add an additional field for bidirectional HasOne relationships
+              // For bi-directional HasMany, we rely on the existing generated field and don't need to add an additional one to the child model
+              FlattenedSchema[ModelName][Field]['relationshipType'] extends 'belongsTo'
+              ? FlattenedSchema[ModelName][Field]['relatedModel'] extends keyof FlattenedSchema
+                ? IsBidirectionalHasMany<
+                    ModelName & string,
+                    FlattenedSchema[FlattenedSchema[ModelName][Field]['relatedModel']]
+                  > extends true
+                  ? never
+                  : ModelName
+                : never
+              : never
+            : never]: FlattenedSchema[ModelName][Field] extends ModelRelationalFieldParamShape
+            ? ModelName extends keyof ResolvedFields
+              ? {
+                  relationships: Partial<
+                    Record<
+                      `${Lowercase<ModelName & string>}${Capitalize<
+                        Field & string
+                      >}Id`,
+                      // possible to pull in the PK field type here instead of string?
+                      string
+                    >
+                  >;
+                }
+              : never
+            : never;
+        };
+      }[keyof FlattenedSchema]
+    >
+  >;
 
 type SchemaTypes<T> = T extends ModelSchema<infer R> ? R['models'] : never;
 

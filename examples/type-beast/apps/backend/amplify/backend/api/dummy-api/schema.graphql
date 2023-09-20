@@ -1,48 +1,25 @@
-type Blog @model {
-  id: ID! @primaryKey
-  title: String!
-  posts: [Post] @hasMany
-}
-
-type Post @model @auth(rules: [{ allow: public }]) {
+type Post @model @auth(rules: [{allow: public}])
+{
   id: ID! @primaryKey
   title: String!
   summary: String
   viewCount: Int
   comments: [Comment] @hasMany
+  comments2: [Comment] @hasMany
+  author: User @hasOne
 }
 
-type Comment @model {
+type Comment @model @auth(rules: [{allow: public}])
+{
   id: ID! @primaryKey
   bingo: String!
   anotherField: String
-  subComments: [SubComment] @hasMany
-}
-
-type SubComment @model {
-  id: ID! @primaryKey
-  bingo: String!
-  anotherField: String
-  subSubComments: [SubSubComment] @hasMany
-}
-
-type SubSubComment @model {
-  id: ID! @primaryKey
-  bingo: String!
-  anotherField: String
-  subComments: [SubComment] @hasMany
   post: Post @belongsTo
 }
 
-type SubComment @model @auth(rules: [{ allow: public }]) {
+type User @model @auth(rules: [{allow: public}])
+{
   id: ID! @primaryKey
-  bingo: String!
-  anotherField: String
-  subSubComments: [SubSubComment] @hasMany
-}
-
-type SubSubComment @model @auth(rules: [{ allow: public }]) {
-  id: ID! @primaryKey
-  bingo: String!
-  anotherField: String
+  name: String!
+  post: Post @belongsTo
 }
