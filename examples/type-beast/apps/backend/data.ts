@@ -10,6 +10,7 @@ const schema = a.schema({
       comments: a.hasMany('Comment'),
       comments2: a.hasMany('Comment'),
       author: a.hasOne('User'),
+      users: a.manyToMany('User', { connectionName: 'UserPosts' }),
     })
     .identifier(['postId', 'title'])
     .authorization([a.allow.public()]),
@@ -26,6 +27,7 @@ const schema = a.schema({
       id: a.id(),
       name: a.string(),
       post: a.belongsTo('Post'),
+      posts: a.manyToMany('Post', { connectionName: 'UserPosts' }),
     })
     .authorization([a.allow.public()]),
 });

@@ -18,6 +18,7 @@ type ModelRelationalFieldData = {
   array: boolean;
   valueOptional: boolean;
   arrayOptional: boolean;
+  connectionName?: string;
 };
 
 export type ModelRelationalFieldParamShape = {
@@ -27,6 +28,7 @@ export type ModelRelationalFieldParamShape = {
   valueOptional: boolean;
   array: boolean;
   arrayOptional: boolean;
+  connectionName?: string;
 };
 
 export type ModelRelationalField<
@@ -65,7 +67,7 @@ function _modelRelationalField<
   T extends ModelRelationalFieldParamShape,
   RelatedModel extends string,
   RT extends ModelRelationshipTypes
->(type: RT, relatedModel: RelatedModel) {
+>(type: RT, relatedModel: RelatedModel, connectionName?: string) {
   const data: ModelRelationalFieldData = {
     relatedModel,
     type,
@@ -73,6 +75,7 @@ function _modelRelationalField<
     array: false,
     valueOptional: false,
     arrayOptional: false,
+    connectionName,
   };
 
   if (arrayTypeRelationships.includes(type)) {
@@ -106,7 +109,8 @@ function _modelRelationalField<
 type ModelRelationalTypeArgFactory<
   RM extends string,
   RT extends RelationshipTypes,
-  IsArray extends boolean
+  IsArray extends boolean,
+  ConnectionName extends string = ''
 > = {
   type: 'model';
   relatedModel: RM;
@@ -114,6 +118,7 @@ type ModelRelationalTypeArgFactory<
   array: IsArray;
   valueOptional: false;
   arrayOptional: false;
+  connectionName: ConnectionName;
 };
 
 export function hasOne<RM extends string>(relatedModel: RM) {
@@ -140,10 +145,13 @@ export function belongsTo<RM extends string>(relatedModel: RM) {
   >(ModelRelationshipTypes.belongsTo, relatedModel);
 }
 
-export function manyToMany<RM extends string>(relatedModel: RM) {
+export function manyToMany<RM extends string, CN extends string>(
+  relatedModel: RM,
+  opts: { connectionName: CN }
+) {
   return _modelRelationalField<
     ModelRelationalTypeArgFactory<RM, ModelRelationshipTypes.manyToMany, true>,
     RM,
     ModelRelationshipTypes.manyToMany
-  >(ModelRelationshipTypes.manyToMany, relatedModel);
+  >(ModelRelationshipTypes.manyToMany, relatedModel, opts.connectionName);
 }
