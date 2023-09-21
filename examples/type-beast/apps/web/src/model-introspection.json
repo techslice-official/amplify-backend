@@ -4,8 +4,8 @@
         "Post": {
             "name": "Post",
             "fields": {
-                "id": {
-                    "name": "id",
+                "postId": {
+                    "name": "postId",
                     "isArray": false,
                     "type": "ID",
                     "isRequired": true,
@@ -44,7 +44,8 @@
                     "association": {
                         "connectionType": "HAS_MANY",
                         "associatedWith": [
-                            "postCommentsId"
+                            "postCommentsPostId",
+                            "postCommentsTitle"
                         ]
                     }
                 },
@@ -60,7 +61,8 @@
                     "association": {
                         "connectionType": "HAS_MANY",
                         "associatedWith": [
-                            "postComments2Id"
+                            "postComments2PostId",
+                            "postComments2Title"
                         ]
                     }
                 },
@@ -117,7 +119,8 @@
                     "type": "key",
                     "properties": {
                         "fields": [
-                            "id"
+                            "postId",
+                            "title"
                         ]
                     }
                 },
@@ -139,9 +142,11 @@
                 }
             ],
             "primaryKeyInfo": {
-                "isCustomPrimaryKey": false,
-                "primaryKeyFieldName": "id",
-                "sortKeyFieldNames": []
+                "isCustomPrimaryKey": true,
+                "primaryKeyFieldName": "postId",
+                "sortKeyFieldNames": [
+                    "title"
+                ]
             }
         },
         "Comment": {
@@ -179,7 +184,8 @@
                     "association": {
                         "connectionType": "BELONGS_TO",
                         "targetNames": [
-                            "postCommentsId"
+                            "postCommentsPostId",
+                            "postCommentsTitle"
                         ]
                     }
                 },
@@ -199,17 +205,31 @@
                     "attributes": [],
                     "isReadOnly": true
                 },
-                "postCommentsId": {
-                    "name": "postCommentsId",
+                "postCommentsPostId": {
+                    "name": "postCommentsPostId",
                     "isArray": false,
                     "type": "ID",
                     "isRequired": false,
                     "attributes": []
                 },
-                "postComments2Id": {
-                    "name": "postComments2Id",
+                "postCommentsTitle": {
+                    "name": "postCommentsTitle",
+                    "isArray": false,
+                    "type": "String",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "postComments2PostId": {
+                    "name": "postComments2PostId",
                     "isArray": false,
                     "type": "ID",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "postComments2Title": {
+                    "name": "postComments2Title",
+                    "isArray": false,
+                    "type": "String",
                     "isRequired": false,
                     "attributes": []
                 }
@@ -280,7 +300,8 @@
                     "association": {
                         "connectionType": "BELONGS_TO",
                         "targetNames": [
-                            "userPostId"
+                            "userPostPostId",
+                            "userPostTitle"
                         ]
                     }
                 },
@@ -300,10 +321,17 @@
                     "attributes": [],
                     "isReadOnly": true
                 },
-                "userPostId": {
-                    "name": "userPostId",
+                "userPostPostId": {
+                    "name": "userPostPostId",
                     "isArray": false,
                     "type": "ID",
+                    "isRequired": false,
+                    "attributes": []
+                },
+                "userPostTitle": {
+                    "name": "userPostTitle",
+                    "isArray": false,
+                    "type": "String",
                     "isRequired": false,
                     "attributes": []
                 }

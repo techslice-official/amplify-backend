@@ -3,7 +3,7 @@ import { default as a, ClientSchema, defineData } from 'type-beast';
 const schema = a.schema({
   Post: a
     .model({
-      id: a.id(),
+      postId: a.id(),
       title: a.string(),
       summary: a.string().optional(),
       viewCount: a.integer().optional(),
@@ -11,7 +11,7 @@ const schema = a.schema({
       comments2: a.hasMany('Comment'),
       author: a.hasOne('User'),
     })
-    .identifier(['id'])
+    .identifier(['postId', 'title'])
     .authorization([a.allow.public()]),
   Comment: a
     .model({
@@ -41,6 +41,6 @@ export default defineData({
 /* 
 
 Reminders:
-* Implement hasone, belongsTo get
 * Implement many-many
+* CPK TB-Client
 */

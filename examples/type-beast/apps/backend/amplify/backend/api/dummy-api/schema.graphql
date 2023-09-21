@@ -1,6 +1,6 @@
 type Post @model @auth(rules: [{allow: public}])
 {
-  id: ID! @primaryKey
+  postId: ID! @primaryKey(sortKeyFields: ["title"])
   title: String!
   summary: String
   viewCount: Int

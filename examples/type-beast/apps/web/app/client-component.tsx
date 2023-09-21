@@ -32,7 +32,7 @@ export function ClientComponent(): JSX.Element {
   const btnHandlers = {
     create: async () => {
       const res = await client.models.Post.create({
-        id: 'post' + Date.now(),
+        postId: 'post' + Date.now(),
         title: 'My Post',
       });
 
@@ -43,7 +43,10 @@ export function ClientComponent(): JSX.Element {
     get: async () => {
       const [latest] = await client.models.Post.list();
 
-      const post = await client.models.Post.get({ id: latest.id });
+      const post = await client.models.Post.get({
+        postId: latest.postId,
+        title: latest.title,
+      });
 
       console.log('Post', post);
 
@@ -63,7 +66,7 @@ export function ClientComponent(): JSX.Element {
     },
     update: async () => {
       const res = await client.models.Post.update({
-        id: 'post1',
+        postId: 'post1',
         title: 'Updated Post',
       });
 
@@ -78,7 +81,10 @@ export function ClientComponent(): JSX.Element {
       }
 
       for (const post of posts) {
-        await client.models.Post.delete({ id: post.id });
+        await client.models.Post.delete({
+          postId: post.postId,
+          title: post.title,
+        });
       }
 
       setRes('deleted');
@@ -92,7 +98,7 @@ export function ClientComponent(): JSX.Element {
     },
     listCustom: async () => {
       const posts = await client.models.Post.list({
-        selectionSet: ['id', 'title', 'comments.*'],
+        selectionSet: ['postId', 'title', 'comments.*'],
       });
 
       const [post] = posts;
@@ -107,7 +113,7 @@ export function ClientComponent(): JSX.Element {
   function Post(props: { post: Post }): JSX.Element {
     const {
       post,
-      post: { id, title, comments },
+      post: { postId, title, comments },
     } = props;
 
     const [postComments, setPostComments] = useState<Comment[]>([]);
@@ -126,7 +132,8 @@ export function ClientComponent(): JSX.Element {
         id: 'comment' + Math.floor(Math.random() * 1_000_000_000_000),
         bingo: 'Comment ' + Date.now(),
         // make the FK required unless the relationship is optional on the parent model
-        postCommentsId: id,
+        postCommentsPostId: postId,
+        postCommentsTitle: title,
       });
 
       await getComments();
@@ -164,7 +171,7 @@ export function ClientComponent(): JSX.Element {
         <div className={styles.result}>
           <h2>Posts</h2>
           {posts.map((post) => (
-            <Post post={post} key={post.id}></Post>
+            <Post post={post} key={post.postId}></Post>
           ))}
         </div>
       ) : (
