@@ -7,6 +7,7 @@ type Post @model @auth(rules: [{allow: public}])
   comments: [Comment] @hasMany
   comments2: [Comment] @hasMany
   author: User @hasOne
+  tags: [Tag] @manyToMany(relationName: "PostTags")
 }
 
 type Comment @model @auth(rules: [{allow: public}])
@@ -22,4 +23,10 @@ type User @model @auth(rules: [{allow: public}])
   id: ID! @primaryKey
   name: String!
   post: Post @belongsTo
+}
+
+type Tag @model @auth(rules: [{allow: public}])
+{
+  name: String!
+  posts: [Post] @manyToMany(relationName: "PostTags")
 }

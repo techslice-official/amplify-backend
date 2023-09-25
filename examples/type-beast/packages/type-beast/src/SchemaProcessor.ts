@@ -80,7 +80,14 @@ function scalarFieldToGql(fieldDef: ScalarFieldDef, identifier?: string[]) {
 }
 
 function modelFieldToGql(fieldDef: ModelFieldDef) {
-  const { type, relatedModel, array, valueOptional, arrayOptional } = fieldDef;
+  const {
+    type,
+    relatedModel,
+    array,
+    valueOptional,
+    arrayOptional,
+    connectionName,
+  } = fieldDef;
 
   let field = relatedModel;
 
@@ -99,6 +106,11 @@ function modelFieldToGql(fieldDef: ModelFieldDef) {
   // }
 
   field += ` @${type}`;
+
+  // TODO: accept other relationship options e.g. `fields`
+  if (type === 'manyToMany') {
+    field += `(relationName: "${connectionName}")`;
+  }
 
   return field;
 }

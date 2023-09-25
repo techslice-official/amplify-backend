@@ -8,6 +8,8 @@ import { Schema } from '../../backend/data';
 import { default as awsconfig } from '../src/aws-exports';
 import { default as modelIntrospection } from '../src/model-introspection.json';
 
+import { __modelMeta__ } from '@aws-amplify/types-package-alpha';
+
 Amplify.configure({
   ...awsconfig,
   API: {
@@ -19,11 +21,48 @@ Amplify.Logger.LOG_LEVEL = 'DEBUG';
 
 const client = API.generateClient<Schema>();
 
-// type Blog = Schema['Blog'];
 type Post = Schema['Post'];
+
 type Comment = Schema['Comment'];
-// type SubComment = Schema['SubComment'];
-// type SubSubComment = Schema['SubSubComment'];
+type PostTags = Schema['PostTags'];
+
+type PTMeta = Schema[typeof __modelMeta__]['PostTags'];
+
+async function createPostTag() {
+  const post1 = await client.models.Post.create({
+    postId: 'postId' + Date.now(),
+    title: 'My Post',
+  });
+
+  const tag1 = await client.models.Tag.create({
+    id: 'tagId' + Date.now(),
+    name: 'News',
+  });
+
+  // add association between post1 to tag1
+  await client.models.PostTags.create({
+    post: post1,
+    tag: tag1,
+  });
+
+  const tag2 = await client.models.Tag.create({
+    id: 'tagId' + Date.now(),
+    name: 'Popular',
+  });
+
+  // add association between post1 to tag2
+  await client.models.PostTags.create({
+    post: post1,
+    tag: tag2,
+  });
+
+  // this should be postTags instead
+  const pTags = await post1.tags();
+  console.log('post tags', pTags);
+
+  const tags = await pTags[0].tag();
+  console.log('first tag', tags);
+}
 
 export function ClientComponent(): JSX.Element {
   const [res, setRes] = useState<any>();
@@ -34,6 +73,10 @@ export function ClientComponent(): JSX.Element {
       const res = await client.models.Post.create({
         postId: 'post' + Date.now(),
         title: 'My Post',
+        author: await client.models.User.create({
+          id: 'userId',
+          name: 'Bob Dole',
+        }),
       });
 
       const post: Post = res;
@@ -75,9 +118,20 @@ export function ClientComponent(): JSX.Element {
     delete: async () => {
       const comments = await client.models.Comment.list();
       const posts = await client.models.Post.list();
+      const postTags = await client.models.PostTags.list();
+      const tags = await client.models.Tag.list();
+      const users = await client.models.User.list();
 
       for (const comment of comments) {
         await client.models.Comment.delete({ id: comment.id });
+      }
+
+      for (const user of users) {
+        await client.models.User.delete({ id: user.id });
+      }
+
+      for (const tag of tags) {
+        await client.models.Tag.delete({ id: tag.id });
       }
 
       for (const post of posts) {
@@ -85,6 +139,14 @@ export function ClientComponent(): JSX.Element {
           postId: post.postId,
           title: post.title,
         });
+      }
+
+      for (const postTag of postTags) {
+        if (postTag.id) {
+          await client.models.PostTags.delete({
+            id: postTag.id,
+          });
+        }
       }
 
       setRes('deleted');
@@ -98,11 +160,12 @@ export function ClientComponent(): JSX.Element {
     },
     listCustom: async () => {
       const posts = await client.models.Post.list({
-        selectionSet: ['postId', 'title', 'comments.*'],
+        selectionSet: ['postId', 'title', 'comments.*', 'tags.*'],
       });
 
       const [post] = posts;
       post.comments;
+      post.tags;
 
       console.log('custom sel set', posts);
 
@@ -113,7 +176,7 @@ export function ClientComponent(): JSX.Element {
   function Post(props: { post: Post }): JSX.Element {
     const {
       post,
-      post: { postId, title, comments },
+      post: { title, comments },
     } = props;
 
     const [postComments, setPostComments] = useState<Comment[]>([]);
@@ -131,9 +194,7 @@ export function ClientComponent(): JSX.Element {
       await client.models.Comment.create({
         id: 'comment' + Math.floor(Math.random() * 1_000_000_000_000),
         bingo: 'Comment ' + Date.now(),
-        // make the FK required unless the relationship is optional on the parent model
-        postCommentsPostId: postId,
-        postCommentsTitle: title,
+        post: post,
       });
 
       await getComments();
@@ -159,6 +220,7 @@ export function ClientComponent(): JSX.Element {
     <>
       <div className={styles.buttons}>
         <button onClick={btnHandlers['create']}>Create</button>
+        <button onClick={createPostTag}>Create Post Tag</button>
         <button onClick={btnHandlers['get']}>Get</button>
         <button onClick={btnHandlers['update']}>Update</button>
         <button onClick={btnHandlers['delete']}>Delete All</button>

@@ -8,9 +8,8 @@ const schema = a.schema({
       summary: a.string().optional(),
       viewCount: a.integer().optional(),
       comments: a.hasMany('Comment'),
-      comments2: a.hasMany('Comment'),
       author: a.hasOne('User'),
-      users: a.manyToMany('User', { connectionName: 'UserPosts' }),
+      tags: a.manyToMany('Tag', { connectionName: 'PostTags' }),
     })
     .identifier(['postId', 'title'])
     .authorization([a.allow.public()]),
@@ -27,7 +26,13 @@ const schema = a.schema({
       id: a.id(),
       name: a.string(),
       post: a.belongsTo('Post'),
-      posts: a.manyToMany('Post', { connectionName: 'UserPosts' }),
+    })
+    .authorization([a.allow.public()]),
+  Tag: a
+    .model({
+      id: a.id(),
+      name: a.string(),
+      posts: a.manyToMany('Post', { connectionName: 'PostTags' }),
     })
     .authorization([a.allow.public()]),
 });
@@ -39,10 +44,3 @@ export type Schema = ClientSchema<typeof schema>;
 export default defineData({
   schema,
 });
-
-/* 
-
-Reminders:
-* Implement many-many
-* CPK TB-Client
-*/

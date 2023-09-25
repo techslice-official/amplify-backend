@@ -46,7 +46,6 @@ export type ModelRelationalField<
       SetTypeSubArg<T, 'arrayOptional', true>,
       K | 'arrayOptional'
     >;
-    authorization(auth: any): ModelRelationalField<T, K | 'authorization'>;
   },
   K
 >;
@@ -93,11 +92,6 @@ function _modelRelationalField<
 
       return this;
     },
-    authorization() {
-      // TODO: implement
-
-      return this;
-    },
   };
 
   return {
@@ -106,11 +100,11 @@ function _modelRelationalField<
   } as InternalRelationalField as ModelRelationalField<T, RelatedModel>;
 }
 
-type ModelRelationalTypeArgFactory<
+export type ModelRelationalTypeArgFactory<
   RM extends string,
   RT extends RelationshipTypes,
   IsArray extends boolean,
-  ConnectionName extends string = ''
+  ConnectionName extends string | undefined = undefined
 > = {
   type: 'model';
   relatedModel: RM;
@@ -150,7 +144,12 @@ export function manyToMany<RM extends string, CN extends string>(
   opts: { connectionName: CN }
 ) {
   return _modelRelationalField<
-    ModelRelationalTypeArgFactory<RM, ModelRelationshipTypes.manyToMany, true>,
+    ModelRelationalTypeArgFactory<
+      RM,
+      ModelRelationshipTypes.manyToMany,
+      true,
+      CN
+    >,
     RM,
     ModelRelationshipTypes.manyToMany
   >(ModelRelationshipTypes.manyToMany, relatedModel, opts.connectionName);

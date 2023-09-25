@@ -7,12 +7,7 @@ import type {
   ModelRelationalField,
   ModelRelationalFieldParamShape,
 } from '../src/ModelRelationalField';
-import type {
-  Prettify,
-  UnionToIntersection,
-  ExcludeEmpty,
-  ObjectIsNonEmpty,
-} from '../src/util';
+import type { Prettify, UnionToIntersection, ExcludeEmpty } from '../src/util';
 import { __modelMeta__ } from '@aws-amplify/types-package-alpha';
 import type { ImpliedAuthFields } from '../src/Authorization';
 
@@ -25,7 +20,8 @@ const schema = a.schema({
       viewCount: a.integer().optional(),
       comments: a.hasMany('Comment'),
       comments2: a.hasMany('Comment'),
-      author: a.hasOne('User'),
+      // author: a.hasOne('User'),
+      tags: a.manyToMany('Tag', { connectionName: 'PostTags' }),
     })
     .identifier(['postId', 'title'])
     .authorization([a.allow.public()]),
@@ -35,13 +31,26 @@ const schema = a.schema({
       bingo: a.string(),
       anotherField: a.string().optional(),
       post: a.belongsTo('Post'),
+      tag: a.manyToMany('Tag', { connectionName: 'CommentTags' }),
     })
     .authorization([a.allow.public()]),
-  User: a
+  // User: a
+  //   .model({
+  //     id: a.id(),
+  //     name: a.string(),
+  //     post: a.belongsTo('Post'),
+  //   })
+  //   .authorization([a.allow.public()]),
+  Tag: a
     .model({
-      id: a.id(),
       name: a.string(),
-      post: a.belongsTo('Post'),
+      posts: a.manyToMany('Post', { connectionName: 'PostTags' }),
+    })
+    .authorization([a.allow.public()]),
+  CTag: a
+    .model({
+      name: a.string(),
+      comments: a.manyToMany('Comment', { connectionName: 'CommentTags' }),
     })
     .authorization([a.allow.public()]),
 });
@@ -53,18 +62,15 @@ type ClientSchema<
   Schema extends ModelSchema<any>,
   // Todo: rename Fields to FlattenedSchema
   Fields = FieldTypes<ModelTypes<SchemaTypes<Schema>>>,
-  FieldsWithRelationships = ResolveRelationships<Fields>,
-  ResolvedFields = Intersection<
+  FieldsWithInjectedModels = InjectImplicitModels<Fields>,
+  FieldsWithRelationships = ResolveRelationships<FieldsWithInjectedModels>,
+  ResolvedFields extends Record<string, unknown> = Intersection<
     FilterFieldTypes<RequiredFieldTypes<FieldsWithRelationships>>,
     FilterFieldTypes<OptionalFieldTypes<FieldsWithRelationships>>,
     FilterFieldTypes<ModelImpliedAuthFields<Schema>>
   >,
   IdentifierMeta = ModelMeta<SchemaTypes<Schema>>,
-  RelationshipMeta = ExtractRelationalMetadata<
-    Fields,
-    ResolvedFields,
-    IdentifierMeta
-  >,
+  RelationshipMeta = ExtractRelationalMetadata<Fields, ResolvedFields>,
   Meta = IdentifierMeta & RelationshipMeta
 > = Prettify<
   ResolvedFields & {
@@ -73,7 +79,6 @@ type ClientSchema<
 >;
 
 type TFields = FieldTypes<ModelTypes<SchemaTypes<TSchema>>>;
-type TFieldsPost = TFields['Post'];
 
 type TFieldsWithRelationships = ResolveRelationships<TFields>;
 
@@ -87,44 +92,13 @@ type MMeta = Schema[typeof __modelMeta__];
 type MPost = MMeta['Post'];
 type MComment = MMeta['Comment'];
 type MCRels = MComment['relationships'];
-
-type MUser = MMeta['User'];
-
-/* 
-  Checks if `RelatedModel` has a HasMany relationship to `ModelName`
-  We only generate FK fields for bi-directional hasOne. For HasMany relationships the existing FK is re-used to establish the relationship
-  This util type lets us make that decision
-*/
-type IsBidirectionalHasMany<
-  ModelName extends string,
-  RelatedModelFields
-  // If the object IS empty, that means RelatedModelFields does not have a HasMany relationship to ModelName
-> = ObjectIsNonEmpty<{
-  [Field in keyof RelatedModelFields as RelatedModelFields[Field] extends ModelRelationalFieldParamShape & {
-    relationshipType: 'hasMany';
-    relatedModel: ModelName;
-  }
-    ? Field
-    : never]: RelatedModelFields[Field];
-}>;
-
-type ComputedRelationalField<
-  ModelName extends string,
-  Field extends string,
-  ResolvedField,
-  IdentifierMeta extends { [modelName: string]: { identifier: string } }
-> = `${Lowercase<ModelName>}${Capitalize<Field>}${Capitalize<
-  ResolvedField extends ModelRelationalFieldParamShape
-    ? ResolvedField['relationshipType'] extends 'hasMany'
-      ? IdentifierMeta[ModelName]['identifier'] & string
-      : IdentifierMeta[ResolvedField['relatedModel']]['identifier']
-    : never
->}`;
+type MTag = MMeta['Tag'];
+type MPostTags = MMeta['PostTags'];
+// type MUser = MMeta['User'];
 
 type ExtractRelationalMetadata<
   FlattenedSchema,
-  ResolvedFields,
-  IdentifierMeta
+  ResolvedFields extends Record<string, unknown>
 > = UnionToIntersection<
   ExcludeEmpty<
     {
@@ -134,39 +108,36 @@ type ExtractRelationalMetadata<
             ? // For hasMany we're adding metadata to the related model
               // E.g. if Post hasMany Comments, we need to add a postCommentsId field to the Comment model
               FlattenedSchema[ModelName][Field]['relatedModel']
-            : FlattenedSchema[ModelName][Field]['relationshipType'] extends 'hasOne'
+            : FlattenedSchema[ModelName][Field]['relationshipType'] extends
+                | 'hasOne'
+                | 'belongsTo'
             ? // For hasOne we're adding metadata to the model itself
               // E.g. if Post hasOne Author, we need to add a postAuthorId field to the Post model
               ModelName
-            : // For belongsTo there are some nuances - we only add an additional field for bidirectional HasOne relationships
-            // For bi-directional HasMany, we rely on the existing generated field and don't need to add an additional one to the child model
-            FlattenedSchema[ModelName][Field]['relationshipType'] extends 'belongsTo'
-            ? FlattenedSchema[ModelName][Field]['relatedModel'] extends keyof FlattenedSchema
-              ? IsBidirectionalHasMany<
-                  ModelName & string,
-                  FlattenedSchema[FlattenedSchema[ModelName][Field]['relatedModel']]
-                > extends false // IsBidirectionalHasMany returns false if the parent model doesn't have a hasMany relationship to ModelName
-                ? ModelName
-                : never
+            : FlattenedSchema[ModelName][Field]['relationshipType'] extends 'manyToMany'
+            ? FlattenedSchema[ModelName][Field]['connectionName'] extends string
+              ? FlattenedSchema[ModelName][Field]['connectionName']
               : never
             : never
           : never]: FlattenedSchema[ModelName][Field] extends ModelRelationalFieldParamShape
-          ? ModelName extends keyof ResolvedFields
-            ? {
-                relationships: Partial<
-                  Record<
-                    ComputedRelationalField<
-                      ModelName & string,
-                      Field & string,
-                      FlattenedSchema[ModelName][Field],
-                      IdentifierMeta & {
-                        [modelName: string]: { identifier: string };
-                      }
-                    >,
-                    string
-                  >
-                >;
-              }
+          ? FlattenedSchema[ModelName][Field] extends ModelRelationalFieldParamShape
+            ? FlattenedSchema[ModelName][Field]['relationshipType'] extends 'manyToMany'
+              ? {
+                  relationships: Partial<
+                    Record<
+                      `${Lowercase<ModelName & string>}`,
+                      ResolvedFields[ModelName & string]
+                    >
+                  >;
+                }
+              : {
+                  relationships: Partial<
+                    Record<
+                      Field,
+                      ResolvedFields[FlattenedSchema[ModelName][Field]['relatedModel']]
+                    >
+                  >;
+                }
             : never
           : never;
       };
@@ -231,6 +202,36 @@ type ResolveRelationalFieldsForModel<Schema, ModelName extends keyof Schema> = {
       : never
     : Schema[ModelName][FieldName];
 };
+
+type TFieldsPost = TFields['Post'];
+
+type TImplicitModelNames = ExtractImplicitModelNames<TFields>;
+
+type ImpTest = TImplicitModelNames extends Record<string, Record<infer R, any>>
+  ? R
+  : false;
+
+type ExtractImplicitModelNames<Schema> = UnionToIntersection<
+  ExcludeEmpty<
+    {
+      [ModelProp in keyof Schema]: {
+        [FieldProp in keyof Schema[ModelProp] as Schema[ModelProp][FieldProp] extends ModelRelationalFieldParamShape
+          ? Schema[ModelProp][FieldProp]['connectionName'] extends string
+            ? Schema[ModelProp][FieldProp]['connectionName'] extends keyof Schema
+              ? never
+              : Schema[ModelProp][FieldProp]['connectionName']
+            : never
+          : never]: { id?: string }; // implicit model will always have id: string as the PK
+      };
+    }[keyof Schema]
+  >
+>;
+
+type TFieldsWithInjectedModels = InjectImplicitModels<TFields>;
+
+type InjectImplicitModels<Schema> = Prettify<
+  Schema & ExtractImplicitModelNames<Schema>
+>;
 
 type ResolveRelationships<Schema> = {
   [ModelProp in keyof Schema]: {
