@@ -252,6 +252,58 @@ describe('model auth rules', () => {
     expect(graphql).toMatchSnapshot();
   });
 
+  it(`includes auth from fields`, () => {
+    const schema = a.schema({
+      widget: a.model({
+        id: a.id(),
+        title: a
+          .string()
+          .authorization([
+            a.allow.owner().inField('customOwner').to(['create', 'read']),
+          ]),
+      }),
+    });
+
+    type Schema = ClientSchema<typeof schema>;
+    type CustomOwnerType = Schema['widget']['customOwner'];
+
+    // single owner should be allowed
+    let customOwner: CustomOwnerType = 'abc';
+
+    // multiple owners should not
+    // @ts-expect-error
+    customOwner = ['multiple', 'owners'];
+
+    const graphql = schemaPreprocessor(schema).processedSchema;
+    expect(graphql).toMatchSnapshot();
+  });
+
+  it(`includes auth from related model fields`, () => {
+    const schema = a.schema({
+      widget: a.model({
+        id: a.id(),
+        parent: a
+          .belongsTo('widget')
+          .authorization([
+            a.allow.owner().inField('customOwner').to(['create', 'read']),
+          ]),
+      }),
+    });
+
+    type Schema = ClientSchema<typeof schema>;
+    type CustomOwnerType = Schema['widget']['customOwner'];
+
+    // single owner should be allowed
+    let customOwner: CustomOwnerType = 'abc';
+
+    // multiple owners should not
+    // @ts-expect-error
+    customOwner = ['multiple', 'owners'];
+
+    const graphql = schemaPreprocessor(schema).processedSchema;
+    expect(graphql).toMatchSnapshot();
+  });
+
   for (const provider of PublicProviders) {
     it(`can define public with with provider ${provider}`, () => {
       const schema = a.schema({

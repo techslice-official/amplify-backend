@@ -1,11 +1,11 @@
-import type { ImpliedAuthFields } from './Authorization';
+import type { Authorization, ImpliedAuthFields } from './Authorization';
 import type { Prettify, UnionToIntersection, ExcludeEmpty } from './util';
 import type { ModelField } from './ModelField';
 import type {
   ModelRelationalField,
   ModelRelationalFieldParamShape,
 } from './ModelRelationalField';
-import type { ModelType } from './ModelType';
+import type { ModelType, ModelTypeParamShape } from './ModelType';
 import type { ModelSchema } from './ModelSchema';
 import { __modelMeta__ } from '@aws-amplify/types-package-alpha';
 
@@ -72,7 +72,7 @@ type ExtractRelationalMetadata<Fields, ResolvedFields> = UnionToIntersection<
 
 type SchemaTypes<T> = T extends ModelSchema<infer R> ? R['models'] : never;
 
-type ModelTypes<Schema> = {
+export type ModelTypes<Schema> = {
   [Property in keyof Schema]: Schema[Property] extends ModelType<infer R, any>
     ? R['fields']
     : never;
@@ -89,12 +89,25 @@ type ModelMeta<T> = {
 
 type ModelImpliedAuthFields<Schema extends ModelSchema<any>> = {
   [ModelKey in keyof Schema['data']['models']]: Schema['data']['models'][ModelKey] extends ModelType<
-    infer A,
+    infer Model,
     any
   >
-    ? ImpliedAuthFields<A['authorization'][number]>
-    : never;
+    ? ImpliedAuthFields<Model['authorization'][number]> &
+        ImpliedAuthFieldsFromFields<Model>
+    : {};
 };
+
+type ImpliedAuthFieldsFromFields<T> = UnionToIntersection<
+  T extends ModelTypeParamShape
+    ? T['fields'][keyof T['fields']] extends
+        | ModelField<any, any, infer Auth>
+        | ModelRelationalField<any, any, any, infer Auth>
+      ? Auth extends Authorization<any, any>
+        ? ImpliedAuthFields<Auth>
+        : {}
+      : {}
+    : {}
+>;
 
 /**
  * infer and massage field types
@@ -147,10 +160,11 @@ type FieldTypes<T> = {
     [FieldProp in keyof T[ModelProp]]: T[ModelProp][FieldProp] extends ModelRelationalField<
       infer R,
       string,
-      never
+      never,
+      any
     >
       ? R
-      : T[ModelProp][FieldProp] extends ModelField<infer R, any>
+      : T[ModelProp][FieldProp] extends ModelField<infer R, any, any>
       ? R
       : never;
   };

@@ -1,4 +1,10 @@
 import { Brand } from './util';
+import { Authorization, __data } from './Authorization';
+
+/**
+ * Used to "attach" auth types to ModelField without exposing them on the builder.
+ */
+export const __auth = Symbol('__auth');
 
 export enum ModelFieldType {
   Id = 'ID',
@@ -35,9 +41,9 @@ type FieldData = {
   array: boolean;
   arrayOptional: boolean;
   default: undefined | string;
+  authorization: Authorization<any, any>[];
 };
 
-// testing something TODO: remove
 type ModelFieldTypeParamInner = string | number | boolean | Date | null;
 type ModelFieldTypeParamOuter =
   | ModelFieldTypeParamInner
@@ -56,16 +62,23 @@ type ToArray<T> = [T] extends [ModelFieldTypeParamInner] ? Array<T> : never;
 export type ModelField<
   T extends ModelFieldTypeParamOuter,
   // rename K
-  K extends keyof ModelField<T> = never
+  K extends keyof ModelField<T> = never,
+  Auth = undefined
 > = Omit<
   {
     optional(): ModelField<T | null, K | 'optional'>;
     // Exclude `optional` after calling array, because both the value and the array itself can be optional
     array(): ModelField<ToArray<T>, Exclude<K, 'optional'> | 'array'>;
     default(val: string): ModelField<T, K | 'default'>;
+    authorization<AuthRuleType extends Authorization<any, any>>(
+      rules: AuthRuleType[]
+    ): ModelField<T, K | 'authorization', AuthRuleType>;
   },
   K
->;
+> & {
+  // This is a lie. This property is never set at runtime. It's just used to smuggle auth types through.
+  [__auth]?: Auth;
+};
 
 /**
  * Internal representation of Model Field that exposes the `data` property.
@@ -98,6 +111,7 @@ function _field<T extends ModelFieldTypeParamOuter>(fieldType: ModelFieldType) {
     array: false,
     arrayOptional: false,
     default: undefined,
+    authorization: [],
   };
 
   const builder: ModelField<T> = {
@@ -121,6 +135,12 @@ function _field<T extends ModelFieldTypeParamOuter>(fieldType: ModelFieldType) {
     default(val) {
       data.default = val;
       _meta.lastInvokedMethod = 'default';
+
+      return this;
+    },
+    authorization(rules) {
+      data.authorization = rules;
+      _meta.lastInvokedMethod = 'authorization';
 
       return this;
     },
