@@ -17,7 +17,7 @@ export class Logger {
   /**
    * Logs a message to the console.
    */
-  async log(message: string, level: LogLevel = LogLevel.INFO) {
+  log(message: string, level: LogLevel = LogLevel.INFO) {
     const toLogMessage = level <= this.minimumLogLevel;
 
     if (!toLogMessage) {
@@ -26,36 +26,40 @@ export class Logger {
 
     const logMessage = `[${
       LogLevel[level]
-    }] ${new Date().toISOString()}: ${message}`;
+    }] ${this.getCurrentTimeString()} ${message}`;
     this.console.log(logMessage);
   }
 
   /**
    * Logs an error to the console.
    */
-  async error(message: string) {
-    await this.log(message, LogLevel.ERROR);
+  error(message: string) {
+    this.log(message, LogLevel.ERROR);
   }
 
   /**
    * Logs a warning to the console.
    */
-  async warn(message: string) {
-    await this.log(message, LogLevel.WARNING);
+  warn(message: string) {
+    this.log(message, LogLevel.WARNING);
   }
 
   /**
    * Logs an info message to the console.
    */
-  async info(message: string) {
-    await this.log(message, LogLevel.INFO);
+  info(message: string) {
+    this.log(message, LogLevel.INFO);
   }
 
   /**
    * Logs a debug message to the console.
    */
-  async debug(message: string) {
-    await this.log(message, LogLevel.DEBUG);
+  debug(message: string) {
+    this.log(message, LogLevel.DEBUG);
+  }
+
+  getCurrentTimeString() {
+    return minimumLogLevel == LogLevel.DEBUG ? `${new Date().toISOString()}:` : '';
   }
 }
 export enum LogLevel {
@@ -79,6 +83,7 @@ export const argv = await yargs(process.argv.slice(2)).options({
 const minimumLogLevel =
   argv.debug || argv.verbose ? LogLevel.DEBUG : LogLevel.INFO;
 
+console.log('minimumLogLevel is ' + LogLevel[minimumLogLevel]);
 const logger = new Logger(global.console, minimumLogLevel);
 
 export { logger };

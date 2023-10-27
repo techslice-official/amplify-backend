@@ -24,7 +24,6 @@ void describe('TsConfigInitializer', () => {
     const tsConfigInitializer = new TsConfigInitializer(
       '/testProjectRoot',
       packageJsonReader,
-      { log: logMock } as never,
       existsSyncMock,
       execaMock as never
     );
@@ -51,7 +50,6 @@ void describe('TsConfigInitializer', () => {
     const tsConfigInitializer = new TsConfigInitializer(
       '/testProjectRoot',
       packageJsonReader,
-      { log: logMock } as never,
       existsSyncMock as never,
       execaMock as never
     );
@@ -76,7 +74,6 @@ void describe('TsConfigInitializer', () => {
   });
 
   void it('runs `npx tsc --init` if no tsconfig.json exists for CommonJS project', async () => {
-    const logMock = mock.fn();
     const existsSyncMock = mock.fn(
       () => true,
       () => false,
@@ -87,7 +84,6 @@ void describe('TsConfigInitializer', () => {
     const tsConfigInitializer = new TsConfigInitializer(
       '/testProjectRoot',
       packageJsonReader,
-      { log: logMock } as never,
       existsSyncMock as never,
       execaMock as never
     );
@@ -120,7 +116,6 @@ void describe('TsConfigInitializer', () => {
     const tsConfigInitializer = new TsConfigInitializer(
       '/testProjectRoot',
       packageJsonReader,
-      { log: logMock } as never,
       existsSyncMock,
       execaMock as never
     );
@@ -131,13 +126,11 @@ void describe('TsConfigInitializer', () => {
   });
 
   void it('throws if tsconfig.json does not exist after npx tsc --init', async () => {
-    const logMock = mock.fn();
     const existsSyncMock = mock.fn(() => false);
     const execaMock = mock.fn();
     const tsConfigInitializer = new TsConfigInitializer(
       '/testProjectRoot',
       packageJsonReader,
-      { log: logMock } as never,
       existsSyncMock,
       execaMock as never
     );

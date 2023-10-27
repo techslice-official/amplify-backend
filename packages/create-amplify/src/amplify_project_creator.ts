@@ -3,6 +3,7 @@ import { ProjectRootValidator } from './project_root_validator.js';
 import { InitialProjectFileGenerator } from './initial_project_file_generator.js';
 import { NpmProjectInitializer } from './npm_project_initializer.js';
 import { TsConfigInitializer } from './tsconfig_initializer.js';
+import { logger } from './logger.js';
 
 /**
  *
@@ -35,19 +36,18 @@ export class AmplifyProjectCreator {
     private readonly npmInitializedEnsurer: NpmProjectInitializer,
     private readonly tsConfigInitializer: TsConfigInitializer,
     private readonly projectRoot: string,
-    private readonly logger: typeof console = console
   ) {}
 
   /**
    * Executes the create-amplify workflow
    */
   create = async (): Promise<void> => {
-    this.logger.log(`Validating current state of target directory...`);
+    logger.debug(`Validating current state of target directory...`);
     await this.projectRootValidator.validate();
 
     await this.npmInitializedEnsurer.ensureInitialized();
 
-    this.logger.log(
+    logger.info(
       `Installing packages ${this.defaultProdPackages.join(', ')}...`
     );
     await this.packageManagerController.installDependencies(
@@ -55,7 +55,7 @@ export class AmplifyProjectCreator {
       'prod'
     );
 
-    this.logger.log(
+    logger.info(
       `Installing dev dependencies ${this.defaultDevPackages.join(', ')}...`
     );
 
@@ -66,7 +66,7 @@ export class AmplifyProjectCreator {
 
     await this.tsConfigInitializer.ensureInitialized();
 
-    this.logger.log('Scaffolding initial project files...');
+    logger.debug('Scaffolding initial project files...');
     await this.initialProjectFileGenerator.generateInitialProjectFiles();
 
     const cdCommand =
@@ -74,7 +74,7 @@ export class AmplifyProjectCreator {
         ? '`'
         : `\`cd .${this.projectRoot.replace(process.cwd(), '')}; `;
 
-    this.logger.log(
+    logger.info(
       `All done! 
 Run \`npx amplify help\` for a list of available commands. 
 Get started by running ${cdCommand}npx amplify sandbox\`.`

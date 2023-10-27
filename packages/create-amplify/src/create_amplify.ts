@@ -15,6 +15,7 @@ import { NpmProjectInitializer } from './npm_project_initializer.js';
 import { TsConfigInitializer } from './tsconfig_initializer.js';
 import { getProjectRoot } from './get_project_root.js';
 import { PackageJsonReader } from './package_json_reader.js';
+import { logger } from './logger.js';
 
 const projectRoot = await getProjectRoot();
 
@@ -30,6 +31,6 @@ const amplifyProjectCreator = new AmplifyProjectCreator(
 try {
   await amplifyProjectCreator.create();
 } catch (err) {
-  console.error(err instanceof Error ? err.message : err);
+  logger.error(err instanceof Error ? err.message : String(err));
   process.exitCode = 1;
 }
