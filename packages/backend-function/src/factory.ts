@@ -13,8 +13,8 @@ import * as path from 'path';
 import { getCallerDirectory } from './get_caller_directory.js';
 import { Duration } from 'aws-cdk-lib';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
-
 import fs from 'fs';
+import * as esbuild from 'esbuild';
 import { createRequire } from 'module';
 import { FunctionEnvironmentTranslator } from './function_env_translator.js';
 
@@ -239,12 +239,21 @@ class AmplifyFunction
       functionEnvironmentTranslator.getSecretPolicyStatement();
 
     const require = createRequire(import.meta.url);
-    const bannerCodeFile = require.resolve('./resolve_secret_banner');
-    const bannerCode = fs
-      .readFileSync(bannerCodeFile, 'utf-8')
+    const bannerCodeRequire = require.resolve('./resolve_secret_banner');
+    const bannerCodeContent = fs.readFileSync(bannerCodeRequire, 'utf-8');
+    const bundledBannerCode = esbuild.transformSync(bannerCodeContent, {
+      format: OutputFormat.ESM,
+      platform: 'node',
+    });
+    const bundledBannerCodeContent = bundledBannerCode.code
       .replaceAll('\n', '')
-      .replaceAll('\r', '')
-      .split('//#')[0]; // remove source map
+      .replaceAll('\r', '');
+    const bannerCode = [
+      '/* The code in this line replaces placeholder text in environment variables for secrets with values fetched from SSM, this is a noop if there are no secrets */',
+      bundledBannerCodeContent,
+    ].join(' ');
+
+    const cjsShimRequire = require.resolve('./cjs_shim');
 
     const functionLambda = new NodejsFunction(scope, `${id}-lambda`, {
       entry: props.entry,
@@ -255,6 +264,7 @@ class AmplifyFunction
       bundling: {
         banner: bannerCode,
         format: OutputFormat.ESM,
+        inject: [cjsShimRequire], // replace require to fix dynamic require errors with cjs
       },
     });
 
