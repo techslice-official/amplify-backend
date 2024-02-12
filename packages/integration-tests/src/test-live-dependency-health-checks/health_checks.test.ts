@@ -19,7 +19,6 @@ import {
 } from '../process-controller/predicated_action_macros.js';
 import { BackendIdentifierConversions } from '@aws-amplify/platform-core';
 import { e2eToolingClientConfig } from '../e2e_tooling_client_config.js';
-import { amplifyAtTag } from '../constants.js';
 
 const cfnClient = new CloudFormationClient(e2eToolingClientConfig);
 
@@ -43,7 +42,7 @@ void describe('Live dependency health checks', { concurrency: true }, () => {
     // Force 'create-amplify' installation in npx cache by executing help command
     // before tests run. Otherwise, installing 'create-amplify' concurrently
     // may lead to race conditions and corrupted npx cache.
-    await execa('npm', ['create', amplifyAtTag, '--yes', '--', '--help'], {
+    await execa('npm', ['create', 'amplify', '--yes', '--', '--help'], {
       // Command must run outside of 'amplify-backend' workspace.
       cwd: os.homedir(),
       stdio: 'inherit',
@@ -78,7 +77,7 @@ void describe('Live dependency health checks', { concurrency: true }, () => {
     });
 
     void it('end to end flow', async () => {
-      await execa('npm', ['create', amplifyAtTag, '--yes'], {
+      await execa('npm', ['create', 'amplify', '--yes'], {
         cwd: tempDir,
         stdio: 'inherit',
       });
@@ -115,7 +114,7 @@ void describe('Live dependency health checks', { concurrency: true }, () => {
     });
 
     void it('end to end flow', async () => {
-      await execa('npm', ['create', amplifyAtTag, '--yes'], {
+      await execa('npm', ['create', 'amplify', '--yes'], {
         cwd: tempDir,
         stdio: 'inherit',
       });
