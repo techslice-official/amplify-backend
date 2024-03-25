@@ -123,21 +123,23 @@ export class FileWatchingSandbox extends EventEmitter implements Sandbox {
 
     const deployAndWatch = debounce(async () => {
       latch = 'deploying';
+      this.printer.log('[Sandbox] TECHSLICE VERSION');
       await this.deploy(options);
+      await this.stop();
 
-      // If latch is still 'deploying' after the 'await', that's fine,
-      // but if it's 'queued', that means we need to deploy again
-      while ((latch as 'deploying' | 'queued') === 'queued') {
-        // TypeScript doesn't realize latch can change between 'awaits' ¯\_(ツ)_/¯,
-        // and thinks the above 'while' condition is always 'false' without the cast
-        latch = 'deploying';
-        this.printer.log(
-          "[Sandbox] Detected file changes while previous deployment was in progress. Invoking 'sandbox' again"
-        );
-        await this.deploy(options);
-      }
-      latch = 'open';
-      this.emitWatching();
+      // // If latch is still 'deploying' after the 'await', that's fine,
+      // // but if it's 'queued', that means we need to deploy again
+      // while ((latch as 'deploying' | 'queued') === 'queued') {
+      //   // TypeScript doesn't realize latch can change between 'awaits' ¯\_(ツ)_/¯,
+      //   // and thinks the above 'while' condition is always 'false' without the cast
+      //   latch = 'deploying';
+      //   this.printer.log(
+      //     "[Sandbox] Detected file changes while previous deployment was in progress. Invoking 'sandbox' again"
+      //   );
+      //   await this.deploy(options);
+      // }
+      // latch = 'open';
+      // this.emitWatching();
     });
 
     this.watcherSubscription = await parcelWatcher.subscribe(
