@@ -5,7 +5,7 @@ import { TestCommandRunner } from '../../../test-utils/command_runner.js';
 import assert from 'node:assert';
 import { SandboxDeleteCommand } from './sandbox_delete_command.js';
 import { SandboxCommand } from '../sandbox_command.js';
-import { SandboxSingletonFactory } from '@aws-amplify/sandbox';
+import { SandboxSingletonFactory } from '@techslice-official/sandbox';
 import { createSandboxSecretCommand } from '../sandbox-secret/sandbox_secret_command_factory.js';
 import { ClientConfigGeneratorAdapter } from '../../../client-config/client_config_generator_adapter.js';
 import { CommandMiddleware } from '../../../command_middleware.js';

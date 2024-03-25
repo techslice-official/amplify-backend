@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "name": "amplify-vnext",
   "dependencies": {
-    "@aws-amplify/backend-cli": {
+    "@techslice-official/backend-cli": {
       "version": "0.2.0-alpha.11",
       "resolved": "file:../../packages/cli",
       "overridden": false,
@@ -7360,7 +7360,7 @@
             }
           }
         },
-        "@aws-amplify/sandbox": {
+        "@techslice-official/sandbox": {
           "version": "0.2.0-alpha.15",
           "resolved": "file:../../packages/sandbox",
           "overridden": false,

@@ -1,5 +1,5 @@
 import { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
-import { SandboxSingletonFactory } from '@aws-amplify/sandbox';
+import { SandboxSingletonFactory } from '@techslice-official/sandbox';
 import { AmplifyPrompter } from '@aws-amplify/cli-core';
 
 /**

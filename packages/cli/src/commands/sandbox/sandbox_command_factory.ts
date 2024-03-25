@@ -1,7 +1,7 @@
 import { CommandModule } from 'yargs';
 import { fileURLToPath } from 'url';
 import { SandboxCommand, SandboxCommandOptions } from './sandbox_command.js';
-import { SandboxSingletonFactory } from '@aws-amplify/sandbox';
+import { SandboxSingletonFactory } from '@techslice-official/sandbox';
 import { SandboxDeleteCommand } from './sandbox-delete/sandbox_delete_command.js';
 import { SandboxBackendIdResolver } from './sandbox_id_resolver.js';
 import { ClientConfigGeneratorAdapter } from '../../client-config/client_config_generator_adapter.js';

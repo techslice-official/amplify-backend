@@ -15,8 +15,8 @@ await new DependenciesValidator(
     },
     '@aws-amplify/cli-core': {
       allowList: [
-        '@aws-amplify/backend-cli',
-        '@aws-amplify/sandbox',
+        '@techslice-official/backend-cli',
+        '@techslice-official/sandbox',
         'create-amplify',
       ],
     },

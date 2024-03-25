@@ -17,7 +17,7 @@ export class EnvironmentInfoProvider {
         Binaries: ['Node', 'Yarn', 'npm', 'pnpm'],
         npmPackages: [
           '@aws-amplify/backend',
-          '@aws-amplify/backend-cli',
+          '@techslice-official/backend-cli',
           'typescript',
           'aws-cdk',
           'aws-cdk-lib',

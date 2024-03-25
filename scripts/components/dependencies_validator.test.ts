@@ -80,7 +80,7 @@ void describe('Dependency validator', () => {
           denyAll: true,
         },
         graphql: {
-          allowList: ['@aws-amplify/backend-cli'],
+          allowList: ['@techslice-official/backend-cli'],
         },
       },
       [],
@@ -108,7 +108,7 @@ void describe('Dependency validator', () => {
         // The 'color-name' must appear only once in the output.
         assert.strictEqual(
           err.message,
-          'Package @aws-amplify/backend-cli must not have color-name anywhere in dependency graph'
+          'Package @techslice-official/backend-cli must not have color-name anywhere in dependency graph'
         );
         return true;
       }

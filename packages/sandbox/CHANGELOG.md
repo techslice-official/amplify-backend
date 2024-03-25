@@ -1,4 +1,4 @@
-# @aws-amplify/sandbox
+# @techslice-official/sandbox
 
 ## 0.5.2-beta.10
 

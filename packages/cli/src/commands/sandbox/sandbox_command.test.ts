@@ -11,7 +11,7 @@ import fsp from 'fs/promises';
 import { EventHandler, SandboxCommand } from './sandbox_command.js';
 import { createSandboxCommand } from './sandbox_command_factory.js';
 import { SandboxDeleteCommand } from './sandbox-delete/sandbox_delete_command.js';
-import { Sandbox, SandboxSingletonFactory } from '@aws-amplify/sandbox';
+import { Sandbox, SandboxSingletonFactory } from '@techslice-official/sandbox';
 import { createSandboxSecretCommand } from './sandbox-secret/sandbox_secret_command_factory.js';
 import { ClientConfigGeneratorAdapter } from '../../client-config/client_config_generator_adapter.js';
 import { CommandMiddleware } from '../../command_middleware.js';
