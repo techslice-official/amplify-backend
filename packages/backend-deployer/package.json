@@ -1,6 +1,6 @@
 {
   "name": "@techslice-official/backend-deployer",
-  "version": "0.5.1-beta.4",
+  "version": "0.5.1-beta.4.1",
   "type": "module",
   "publishConfig": {
     "access": "public"

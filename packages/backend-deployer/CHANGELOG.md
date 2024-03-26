@@ -1,4 +1,4 @@
-# @aws-amplify/backend-deployer
+# @techslice-official/backend-deployer
 
 ## 0.5.1-beta.4
 

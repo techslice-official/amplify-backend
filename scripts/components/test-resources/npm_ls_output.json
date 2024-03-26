@@ -7365,7 +7365,7 @@
           "resolved": "file:../../packages/sandbox",
           "overridden": false,
           "dependencies": {
-            "@aws-amplify/backend-deployer": {
+            "@techslice-official/backend-deployer": {
               "version": "0.2.0-alpha.9",
               "resolved": "file:../../packages/backend-deployer",
               "overridden": false,

@@ -1,6 +1,6 @@
 import _isCI from 'is-ci';
 import { Argv, CommandModule } from 'yargs';
-import { BackendDeployer } from '@aws-amplify/backend-deployer';
+import { BackendDeployer } from '@techslice-official/backend-deployer';
 import { ClientConfigGeneratorAdapter } from '../../client-config/client_config_generator_adapter.js';
 import { ArgumentsKebabCase } from '../../kebab_case.js';
 import { BackendIdentifier } from '@aws-amplify/plugin-types';

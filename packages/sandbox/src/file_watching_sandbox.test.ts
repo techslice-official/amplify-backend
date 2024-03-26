@@ -9,7 +9,7 @@ import {
 } from './file_watching_sandbox.js';
 import assert from 'node:assert';
 import { AmplifySandboxExecutor } from './sandbox_executor.js';
-import { BackendDeployerFactory } from '@aws-amplify/backend-deployer';
+import { BackendDeployerFactory } from '@techslice-official/backend-deployer';
 import fs from 'fs';
 import parseGitIgnore from 'parse-gitignore';
 import { CloudFormationClient } from '@aws-sdk/client-cloudformation';

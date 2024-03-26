@@ -1,7 +1,7 @@
 import { SandboxEventHandlerCreator } from './sandbox_command.js';
 import { BackendIdentifier } from '@aws-amplify/plugin-types';
 import { AmplifyError, UsageDataEmitter } from '@aws-amplify/platform-core';
-import { DeployResult } from '@aws-amplify/backend-deployer';
+import { DeployResult } from '@techslice-official/backend-deployer';
 import { format, printer } from '@aws-amplify/cli-core';
 
 /**

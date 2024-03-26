@@ -4,7 +4,7 @@ import {
   BackendDeployer,
   DeployResult,
   DestroyResult,
-} from '@aws-amplify/backend-deployer';
+} from '@techslice-official/backend-deployer';
 import { SecretClient } from '@aws-amplify/backend-secret';
 import { LogLevel, Printer } from '@aws-amplify/cli-core';
 

@@ -1,5 +1,5 @@
 import { CommandModule } from 'yargs';
-import { BackendDeployerFactory } from '@aws-amplify/backend-deployer';
+import { BackendDeployerFactory } from '@techslice-official/backend-deployer';
 import {
   PackageManagerControllerFactory,
   printer,

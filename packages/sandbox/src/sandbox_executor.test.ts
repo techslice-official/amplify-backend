@@ -1,7 +1,7 @@
 import { afterEach, describe, it, mock } from 'node:test';
 import assert from 'node:assert';
 import { AmplifySandboxExecutor } from './sandbox_executor.js';
-import { BackendDeployerFactory } from '@aws-amplify/backend-deployer';
+import { BackendDeployerFactory } from '@techslice-official/backend-deployer';
 import {
   LogLevel,
   PackageManagerControllerFactory,

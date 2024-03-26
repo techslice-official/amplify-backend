@@ -9,7 +9,7 @@ import {
   PipelineDeployCommand,
   PipelineDeployCommandOptions,
 } from './pipeline_deploy_command.js';
-import { BackendDeployerFactory } from '@aws-amplify/backend-deployer';
+import { BackendDeployerFactory } from '@techslice-official/backend-deployer';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import {
   LogLevel,
