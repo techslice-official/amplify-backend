@@ -44,9 +44,9 @@ export class CDKDeployer implements BackendDeployer {
    * Invokes cdk deploy command
    */
   deploy = async (backendId: BackendIdentifier, deployProps?: DeployProps) => {
-    const cdkCommandArgs: string[] = [];
+    const cdkCommandArgs: string[] = ['--no-rollback', '--force'];
     if (backendId.type === 'sandbox') {
-      cdkCommandArgs.push('--hotswap-fallback');
+      // cdkCommandArgs.push('--hotswap-fallback');
       cdkCommandArgs.push('--method=direct');
       if (deployProps?.secretLastUpdated) {
         cdkCommandArgs.push(
