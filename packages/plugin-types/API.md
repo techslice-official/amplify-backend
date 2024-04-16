@@ -4,6 +4,7 @@
 
 ```ts
 
+import { CfnFunction } from 'aws-cdk-lib/aws-lambda';
 import { CfnIdentityPool } from 'aws-cdk-lib/aws-cognito';
 import { CfnIdentityPoolRoleAttachment } from 'aws-cdk-lib/aws-cognito';
 import { CfnUserPool } from 'aws-cdk-lib/aws-cognito';
@@ -137,6 +138,9 @@ export type DeploymentType = 'branch' | 'sandbox';
 // @public (undocumented)
 export type FunctionResources = {
     lambda: IFunction;
+    cfnResources: {
+        cfnFunction: CfnFunction;
+    };
 };
 
 // @public (undocumented)
@@ -144,6 +148,7 @@ export type GenerateContainerEntryProps = {
     scope: Construct;
     backendSecretResolver: BackendSecretResolver;
     ssmEnvironmentEntriesGenerator: SsmEnvironmentEntriesGenerator;
+    stableBackendIdentifiers: StableBackendIdentifiers;
 };
 
 // @public
@@ -208,6 +213,11 @@ export type SsmEnvironmentEntriesGenerator = {
 export type SsmEnvironmentEntry = {
     name: string;
     path: string;
+};
+
+// @public (undocumented)
+export type StableBackendIdentifiers = {
+    getStableBackendHash: () => string;
 };
 
 // (No @packageDocumentation comment for this package)

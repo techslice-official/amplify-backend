@@ -1,5 +1,20 @@
 # @aws-amplify/platform-core
 
+## 0.5.0-beta.5
+
+### Patch Changes
+
+- 6c6af9b: chore: convert errors to AmplifyUserError
+- Updated dependencies [48ff3bd]
+  - @aws-amplify/plugin-types@0.9.0-beta.2
+
+## 0.5.0-beta.4
+
+### Patch Changes
+
+- aec89f9: chore: correctly handle quotes in the error messages
+- 2a69684: chore: handle generic error serialization correctly
+
 ## 0.5.0-beta.3
 
 ### Patch Changes

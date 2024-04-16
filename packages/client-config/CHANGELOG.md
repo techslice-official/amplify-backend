@@ -1,5 +1,46 @@
 # @aws-amplify/client-config
 
+## 0.9.0-beta.12
+
+### Patch Changes
+
+- 1e93535: chore: auto-generate cognito domain when external providers are configured
+- bb5a446: fix: populate analytics legacy v5 config
+- Updated dependencies [1e93535]
+  - @aws-amplify/backend-output-schemas@0.7.0-beta.1
+  - @aws-amplify/deployed-backend-client@0.4.0-beta.7
+  - @aws-amplify/model-generator@0.5.0-beta.9
+
+## 0.9.0-beta.11
+
+### Patch Changes
+
+- 54c69c4: chore: rename the new client config file name
+- Updated dependencies [6c6af9b]
+- Updated dependencies [a494aca]
+  - @aws-amplify/platform-core@0.5.0-beta.5
+  - @aws-amplify/model-generator@0.5.0-beta.8
+  - @aws-amplify/deployed-backend-client@0.4.0-beta.6
+
+## 0.9.0-beta.10
+
+### Patch Changes
+
+- 394b72e: chore: updates to client config schema and config generation
+- 592bd4f: refactor log abstraction in `client-config`, `form-generator`, and `model-generator` packages
+- Updated dependencies [592bd4f]
+  - @aws-amplify/model-generator@0.5.0-beta.7
+
+## 0.9.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [aec89f9]
+- Updated dependencies [2a69684]
+  - @aws-amplify/platform-core@0.5.0-beta.4
+  - @aws-amplify/deployed-backend-client@0.4.0-beta.5
+  - @aws-amplify/model-generator@0.5.0-beta.6
+
 ## 0.9.0-beta.8
 
 ### Patch Changes

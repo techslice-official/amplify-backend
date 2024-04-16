@@ -1,5 +1,32 @@
 # @aws-amplify/backend-storage
 
+## 0.6.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [1e93535]
+  - @aws-amplify/backend-output-schemas@0.7.0-beta.1
+  - @aws-amplify/backend-output-storage@0.4.0-beta.6
+
+## 0.6.0-beta.7
+
+### Patch Changes
+
+- 48ff3bd: Add cfnFunction to function resources
+- Updated dependencies [48ff3bd]
+  - @aws-amplify/plugin-types@0.9.0-beta.2
+  - @aws-amplify/backend-output-storage@0.4.0-beta.5
+
+## 0.6.0-beta.6
+
+### Minor Changes
+
+- 95a040b: Change storage access path validation from enforcing leading slash to enforcing no leading slash
+
+### Patch Changes
+
+- @aws-amplify/backend-output-storage@0.4.0-beta.4
+
 ## 0.6.0-beta.5
 
 ### Patch Changes

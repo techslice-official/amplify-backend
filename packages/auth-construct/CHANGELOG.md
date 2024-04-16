@@ -1,5 +1,41 @@
 # @aws-amplify/auth-construct-alpha
 
+## 0.6.0-beta.11
+
+### Patch Changes
+
+- 1e93535: chore: auto-generate cognito domain when external providers are configured
+- Updated dependencies [1e93535]
+  - @aws-amplify/backend-output-schemas@0.7.0-beta.1
+  - @aws-amplify/backend-output-storage@0.4.0-beta.6
+
+## 0.6.0-beta.10
+
+### Patch Changes
+
+- 1b8386b: Auth user attribute mappings have been simplified to use strings instead of objects with an attributeName property.
+- Updated dependencies [48ff3bd]
+  - @aws-amplify/plugin-types@0.9.0-beta.2
+  - @aws-amplify/backend-output-storage@0.4.0-beta.5
+
+## 0.6.0-beta.9
+
+### Patch Changes
+
+- fe59a49: This change adds support for customizing the email verification link text.
+
+## 0.6.0-beta.8
+
+### Patch Changes
+
+- 394b72e: chore: updates to client config schema and config generation
+
+## 0.6.0-beta.7
+
+### Patch Changes
+
+- @aws-amplify/backend-output-storage@0.4.0-beta.4
+
 ## 0.6.0-beta.6
 
 ### Patch Changes

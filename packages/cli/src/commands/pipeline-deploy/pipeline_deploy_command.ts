@@ -1,5 +1,5 @@
 import _isCI from 'is-ci';
-import { Argv, CommandModule } from 'yargs';
+import { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
 import { BackendDeployer } from '@techslice-official/backend-deployer';
 import { ClientConfigGeneratorAdapter } from '../../client-config/client_config_generator_adapter.js';
 import { ArgumentsKebabCase } from '../../kebab_case.js';
@@ -34,7 +34,7 @@ export class PipelineDeployCommand
   /**
    * @inheritDoc
    */
-  readonly describe: false;
+  readonly describe: string;
 
   /**
    * Creates top level entry point for deploy command.
@@ -45,14 +45,16 @@ export class PipelineDeployCommand
     private readonly isCiEnvironment: typeof _isCI = _isCI
   ) {
     this.command = 'pipeline-deploy';
-    // use false for a hidden command
-    this.describe = false;
+    this.describe =
+      'Command to deploy backends in a custom CI/CD pipeline. This command is not intended to be used locally.';
   }
 
   /**
    * @inheritDoc
    */
-  handler = async (args: PipelineDeployCommandOptions): Promise<void> => {
+  handler = async (
+    args: ArgumentsCamelCase<PipelineDeployCommandOptions>
+  ): Promise<void> => {
     if (!this.isCiEnvironment) {
       throw new Error(
         'It looks like this command is being run outside of a CI/CD workflow. To deploy locally use `amplify sandbox` instead.'
@@ -60,7 +62,7 @@ export class PipelineDeployCommand
     }
 
     const backendId: BackendIdentifier = {
-      namespace: args['app-id'],
+      namespace: args.appId,
       name: args.branch,
       type: 'branch',
     };
@@ -69,8 +71,8 @@ export class PipelineDeployCommand
     });
     await this.clientConfigGenerator.generateClientConfigToFile(
       backendId,
-      args['config-version'] as ClientConfigVersion,
-      args['config-out-dir']
+      args.configVersion as ClientConfigVersion,
+      args.configOutDir
     );
   };
 

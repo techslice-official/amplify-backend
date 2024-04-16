@@ -1,5 +1,69 @@
 # @techslice-official/sandbox
 
+## 0.5.2-beta.16
+
+### Patch Changes
+
+- Updated dependencies [1e93535]
+- Updated dependencies [bb5a446]
+  - @aws-amplify/client-config@0.9.0-beta.12
+  - @aws-amplify/deployed-backend-client@0.4.0-beta.7
+
+## 0.5.2-beta.15
+
+### Patch Changes
+
+- 1375e5b: improve to notify us that the amplify dir does not exist at the path when run amplify sandox
+- 1c52df1: chore: Adds a log message to inform the name of the sandbox being created/initialized
+- Updated dependencies [6c6af9b]
+- Updated dependencies [54c69c4]
+- Updated dependencies [e3a537f]
+- Updated dependencies [1c52df1]
+  - @aws-amplify/backend-deployer@0.5.1-beta.6
+  - @aws-amplify/platform-core@0.5.0-beta.5
+  - @aws-amplify/client-config@0.9.0-beta.11
+  - @aws-amplify/cli-core@0.5.0-beta.10
+  - @aws-amplify/backend-secret@0.4.5-beta.5
+  - @aws-amplify/deployed-backend-client@0.4.0-beta.6
+
+## 0.5.2-beta.14
+
+### Patch Changes
+
+- Updated dependencies [77079c6]
+  - @aws-amplify/cli-core@0.5.0-beta.9
+
+## 0.5.2-beta.13
+
+### Patch Changes
+
+- Updated dependencies [4d47f63]
+  - @aws-amplify/cli-core@0.5.0-beta.8
+
+## 0.5.2-beta.12
+
+### Patch Changes
+
+- Updated dependencies [394b72e]
+- Updated dependencies [592bd4f]
+  - @aws-amplify/client-config@0.9.0-beta.10
+
+## 0.5.2-beta.11
+
+### Patch Changes
+
+- aec89f9: chore: correctly handle quotes in the error messages
+- cff84c0: chore: add more cdk errors in the error mapper
+- Updated dependencies [aec89f9]
+- Updated dependencies [cff84c0]
+- Updated dependencies [2a69684]
+  - @aws-amplify/platform-core@0.5.0-beta.4
+  - @aws-amplify/backend-deployer@0.5.1-beta.5
+  - @aws-amplify/backend-secret@0.4.5-beta.4
+  - @aws-amplify/cli-core@0.5.0-beta.7
+  - @aws-amplify/client-config@0.9.0-beta.9
+  - @aws-amplify/deployed-backend-client@0.4.0-beta.5
+
 ## 0.5.2-beta.10
 
 ### Patch Changes

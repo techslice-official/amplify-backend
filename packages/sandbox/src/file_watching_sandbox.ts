@@ -29,7 +29,11 @@ import {
   FilesChangesTracker,
   createFilesChangesTracker,
 } from './files_changes_tracker.js';
-import { AmplifyError } from '@aws-amplify/platform-core';
+import {
+  AmplifyError,
+  AmplifyUserError,
+  BackendIdentifierConversions,
+} from '@aws-amplify/platform-core';
 
 export const CDK_BOOTSTRAP_STACK_NAME = 'CDKToolkit';
 export const CDK_BOOTSTRAP_VERSION_KEY = 'BootstrapVersion';
@@ -87,9 +91,16 @@ export class FileWatchingSandbox extends EventEmitter implements Sandbox {
    * @inheritdoc
    */
   start = async (options: SandboxOptions) => {
-    this.filesChangesTracker = await createFilesChangesTracker(
-      options.dir ?? './amplify'
-    );
+    const watchDir = options.dir ?? './amplify';
+    if (!fs.existsSync(watchDir)) {
+      throw new AmplifyUserError('PathNotFoundError', {
+        message: `${watchDir} does not exist.`,
+        resolution:
+          'Make sure you are running this command from your project root directory.',
+      });
+    }
+
+    this.filesChangesTracker = await createFilesChangesTracker(watchDir);
     const bootstrapped = await this.isBootstrapped();
     if (!bootstrapped) {
       this.printer.log(
@@ -105,7 +116,8 @@ export class FileWatchingSandbox extends EventEmitter implements Sandbox {
     this.outputFilesExcludedFromWatch =
       this.outputFilesExcludedFromWatch.concat(...ignoredPaths);
 
-    this.printer.log(`[Sandbox] Initializing...`, LogLevel.DEBUG);
+    await this.printSandboxNameInfo(options.identifier);
+
     // Since 'cdk deploy' is a relatively slow operation for a 'watch' process,
     // introduce a concurrency latch that tracks the state.
     // This way, if file change events arrive when a 'cdk deploy' is still executing,
@@ -146,7 +158,7 @@ export class FileWatchingSandbox extends EventEmitter implements Sandbox {
     });
 
     this.watcherSubscription = await parcelWatcher.subscribe(
-      options.dir ?? './amplify',
+      watchDir,
       async (_, events) => {
         // Log and track file changes.
         await Promise.all(
@@ -196,7 +208,7 @@ export class FileWatchingSandbox extends EventEmitter implements Sandbox {
       '[Sandbox] Deleting all the resources in the sandbox environment...'
     );
     await this.executor.destroy(
-      await this.backendIdSandboxResolver(options.name)
+      await this.backendIdSandboxResolver(options.identifier)
     );
     this.emit('successfulDeletion');
     this.printer.log('[Sandbox] Finished deleting.');
@@ -217,7 +229,7 @@ export class FileWatchingSandbox extends EventEmitter implements Sandbox {
   private deploy = async (options: SandboxOptions) => {
     try {
       const deployResult = await this.executor.deploy(
-        await this.backendIdSandboxResolver(options.name),
+        await this.backendIdSandboxResolver(options.identifier),
         // It's important to pass this as callback so that debounce does
         // not reset tracker prematurely
         this.shouldValidateAppSources
@@ -243,7 +255,7 @@ export class FileWatchingSandbox extends EventEmitter implements Sandbox {
   };
 
   private reset = async (options: SandboxOptions) => {
-    await this.delete({ name: options.name });
+    await this.delete({ identifier: options.identifier });
     await this.start(options);
   };
 
@@ -325,12 +337,12 @@ export class FileWatchingSandbox extends EventEmitter implements Sandbox {
       message = error.message;
 
       // Add the downstream exception
-      if (error.cause && error.cause instanceof Error) {
-        message = `${message}\nCaused By: ${
-          error.cause instanceof Error
-            ? error.cause.message
-            : String(error.cause)
-        }`;
+      if (error.cause && error.cause instanceof Error && error.cause.message) {
+        message = `${message}\nCaused By: ${error.cause.message}\n`;
+      }
+
+      if (error instanceof AmplifyError && error.resolution) {
+        message = `${message}\nResolution: ${error.resolution}\n`;
       }
     } else message = String(error);
     return message;
@@ -355,5 +367,27 @@ export class FileWatchingSandbox extends EventEmitter implements Sandbox {
       await this.reset(options);
     }
     // else let the sandbox continue so customers can revert their changes
+  };
+
+  private printSandboxNameInfo = async (sandboxIdentifier?: string) => {
+    const sandboxBackendId = await this.backendIdSandboxResolver(
+      sandboxIdentifier
+    );
+    const stackName =
+      BackendIdentifierConversions.toStackName(sandboxBackendId);
+    this.printer.log(
+      format.indent(format.highlight(format.bold('\nAmplify Sandbox\n')))
+    );
+    this.printer.log(
+      format.indent(`${format.bold('Identifier:')} \t${sandboxBackendId.name}`)
+    );
+    this.printer.log(format.indent(`${format.bold('Stack:')} \t${stackName}`));
+    if (!sandboxIdentifier) {
+      this.printer.log(
+        `${format.indent(
+          format.dim('\nTo specify a different sandbox identifier, use ')
+        )}${format.bold('--identifier')}`
+      );
+    }
   };
 }

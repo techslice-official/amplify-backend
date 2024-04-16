@@ -1,5 +1,34 @@
 # @aws-amplify/backend-function
 
+## 0.8.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [1e93535]
+  - @aws-amplify/backend-output-schemas@0.7.0-beta.1
+  - @aws-amplify/backend-output-storage@0.4.0-beta.6
+
+## 0.8.0-beta.9
+
+### Patch Changes
+
+- 6c6af9b: chore: convert errors to AmplifyUserError
+- 48ff3bd: Add cfnFunction to function resources
+- Updated dependencies [48ff3bd]
+  - @aws-amplify/plugin-types@0.9.0-beta.2
+  - @aws-amplify/backend-output-storage@0.4.0-beta.5
+
+## 0.8.0-beta.8
+
+### Minor Changes
+
+- 62dab44: add support for function dependencies that require .node files
+
+### Patch Changes
+
+- aec89f9: chore: correctly handle quotes in the error messages
+  - @aws-amplify/backend-output-storage@0.4.0-beta.4
+
 ## 0.8.0-beta.7
 
 ### Minor Changes

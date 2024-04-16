@@ -1,5 +1,47 @@
 # @aws-amplify/backend-auth
 
+## 0.5.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [1e93535]
+  - @aws-amplify/auth-construct-alpha@0.6.0-beta.11
+  - @aws-amplify/backend-output-storage@0.4.0-beta.6
+
+## 0.5.0-beta.10
+
+### Patch Changes
+
+- 6c6af9b: chore: convert errors to AmplifyUserError
+- 5ebc1d4: Added manageGroups as an IAM action.
+- 48ff3bd: Add cfnFunction to function resources
+- Updated dependencies [48ff3bd]
+- Updated dependencies [1b8386b]
+  - @aws-amplify/plugin-types@0.9.0-beta.2
+  - @aws-amplify/auth-construct-alpha@0.6.0-beta.10
+  - @aws-amplify/backend-output-storage@0.4.0-beta.5
+
+## 0.5.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [fe59a49]
+  - @aws-amplify/auth-construct-alpha@0.6.0-beta.9
+
+## 0.5.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [394b72e]
+  - @aws-amplify/auth-construct-alpha@0.6.0-beta.8
+
+## 0.5.0-beta.7
+
+### Patch Changes
+
+- @aws-amplify/backend-output-storage@0.4.0-beta.4
+- @aws-amplify/auth-construct-alpha@0.6.0-beta.7
+
 ## 0.5.0-beta.6
 
 ### Patch Changes

@@ -12,12 +12,18 @@ import {
 import {
   AmplifyData,
   AmplifyDynamoDbTableWrapper,
+  IAmplifyDataDefinition,
   TranslationBehavior,
 } from '@aws-amplify/data-construct';
 import { GraphqlOutput } from '@aws-amplify/backend-output-schemas';
 import * as path from 'path';
 import { AmplifyDataError, DataProps } from './types.js';
-import { convertSchemaToCDK, isModelSchema } from './convert_schema.js';
+import {
+  combineCDKSchemas,
+  convertSchemaToCDK,
+  isCombinedSchema,
+  isDataSchema,
+} from './convert_schema.js';
 import { convertFunctionNameMapToCDK } from './convert_functions.js';
 import {
   ProvidedAuthConfig,
@@ -26,7 +32,11 @@ import {
   isUsingDefaultApiKeyAuth,
 } from './convert_authorization_modes.js';
 import { validateAuthorizationModes } from './validate_authorization_modes.js';
-import { AmplifyUserError, CDKContextKey } from '@aws-amplify/platform-core';
+import {
+  AmplifyError,
+  AmplifyUserError,
+  CDKContextKey,
+} from '@aws-amplify/platform-core';
 import { Aspects, IAspect } from 'aws-cdk-lib';
 import { convertJsResolverDefinition } from './convert_js_resolvers.js';
 import { AppSyncPolicyGenerator } from './app_sync_policy_generator.js';
@@ -106,17 +116,41 @@ class DataGenerator implements ConstructContainerEntryGenerator {
   generateContainerEntry = ({
     scope,
     ssmEnvironmentEntriesGenerator,
+    backendSecretResolver,
+    stableBackendIdentifiers,
   }: GenerateContainerEntryProps) => {
-    let amplifyGraphqlDefinition;
-    let jsFunctions: JsResolver[] = [];
-    let functionSchemaAccess: FunctionSchemaAccess[] = [];
-    let lambdaFunctions: Record<string, ConstructFactory<AmplifyFunction>> = {};
+    const amplifyGraphqlDefinitions: IAmplifyDataDefinition[] = [];
+    const schemasJsFunctions: JsResolver[] = [];
+    const schemasFunctionSchemaAccess: FunctionSchemaAccess[] = [];
+    let schemasLambdaFunctions: Record<
+      string,
+      ConstructFactory<AmplifyFunction>
+    > = {};
     try {
-      if (isModelSchema(this.props.schema)) {
-        ({ jsFunctions, functionSchemaAccess, lambdaFunctions } =
-          this.props.schema.transform());
-      }
-      amplifyGraphqlDefinition = convertSchemaToCDK(this.props.schema);
+      const schemas = isCombinedSchema(this.props.schema)
+        ? this.props.schema.schemas
+        : [this.props.schema];
+
+      schemas.forEach((schema) => {
+        if (isDataSchema(schema)) {
+          const { jsFunctions, functionSchemaAccess, lambdaFunctions } =
+            schema.transform();
+          schemasJsFunctions.push(...jsFunctions);
+          schemasFunctionSchemaAccess.push(...functionSchemaAccess);
+          schemasLambdaFunctions = {
+            ...schemasLambdaFunctions,
+            ...lambdaFunctions,
+          };
+        }
+
+        amplifyGraphqlDefinitions.push(
+          convertSchemaToCDK(
+            schema,
+            backendSecretResolver,
+            stableBackendIdentifiers
+          )
+        );
+      });
     } catch (error) {
       throw new AmplifyUserError<AmplifyDataError>(
         'InvalidSchemaError',
@@ -133,24 +167,16 @@ class DataGenerator implements ConstructContainerEntryGenerator {
     }
 
     let authorizationModes;
-
-    /**
-     * TODO - remove this after the data construct does work to remove the need for allow-listed IAM roles
-     */
-    const functionSchemaAccessRoles = functionSchemaAccess.map(
-      (accessEntry) =>
-        accessEntry.resourceProvider.getInstance(this.getInstanceProps)
-          .resources.lambda.role!
-    );
-
     try {
       authorizationModes = convertAuthorizationModesToCDK(
         this.getInstanceProps,
         this.providedAuthConfig,
-        this.props.authorizationModes,
-        functionSchemaAccessRoles
+        this.props.authorizationModes
       );
     } catch (error) {
+      if (error instanceof AmplifyError) {
+        throw error;
+      }
       throw new AmplifyUserError<AmplifyDataError>(
         'InvalidSchemaAuthError',
         {
@@ -182,6 +208,7 @@ class DataGenerator implements ConstructContainerEntryGenerator {
         error instanceof Error ? error : undefined
       );
     }
+    const apiName = this.props.name ?? this.defaultName;
 
     const sandboxModeEnabled = isUsingDefaultApiKeyAuth(
       this.providedAuthConfig,
@@ -192,25 +219,38 @@ class DataGenerator implements ConstructContainerEntryGenerator {
 
     const functionNameMap = convertFunctionNameMapToCDK(this.getInstanceProps, {
       ...propsFunctions,
-      ...lambdaFunctions,
+      ...schemasLambdaFunctions,
     });
-    const amplifyApi = new AmplifyData(scope, this.defaultName, {
-      apiName: this.props.name,
-      definition: amplifyGraphqlDefinition,
-      authorizationModes,
-      outputStorageStrategy: this.outputStorageStrategy,
-      functionNameMap,
-      translationBehavior: {
-        sandboxModeEnabled,
-        /**
-         * The destructive updates should be always allowed in backend definition and not to be controlled on the IaC
-         * The CI/CD check should take the responsibility to validate if any tables are being replaced and determine whether to execute the changeset
-         */
-        allowDestructiveGraphqlSchemaUpdates: true,
-      },
-    });
+    let amplifyApi = undefined;
 
-    /**
+    try {
+      amplifyApi = new AmplifyData(scope, this.defaultName, {
+        apiName,
+        definition: combineCDKSchemas(amplifyGraphqlDefinitions),
+        authorizationModes,
+        outputStorageStrategy: this.outputStorageStrategy,
+        functionNameMap,
+        translationBehavior: {
+          sandboxModeEnabled,
+          /**
+           * The destructive updates should be always allowed in backend definition and not to be controlled on the IaC
+           * The CI/CD check should take the responsibility to validate if any tables are being replaced and determine whether to execute the changeset
+           */
+          allowDestructiveGraphqlSchemaUpdates: true,
+        },
+      });
+    } catch (error) {
+      throw new AmplifyUserError(
+        'AmplifyDataConstructInitializationError',
+        {
+          message: 'Failed to instantiate data construct',
+          resolution: 'See the underlying error message for more details.',
+        },
+        error as Error
+      );
+    }
+
+    /**;
      * Enable the table replacement upon GSI update
      * This is allowed in sandbox mode ONLY
      */
@@ -220,11 +260,11 @@ class DataGenerator implements ConstructContainerEntryGenerator {
       Aspects.of(amplifyApi).add(new ReplaceTableUponGsiUpdateOverrideAspect());
     }
 
-    convertJsResolverDefinition(scope, amplifyApi, jsFunctions);
+    convertJsResolverDefinition(scope, amplifyApi, schemasJsFunctions);
 
     const ssmEnvironmentEntries =
       ssmEnvironmentEntriesGenerator.generateSsmEnvironmentEntries({
-        [`${this.props.name}_GRAPHQL_ENDPOINT`]:
+        [`${apiName}_GRAPHQL_ENDPOINT`]:
           amplifyApi.resources.cfnResources.cfnGraphqlApi.attrGraphQlUrl,
       });
 
@@ -232,7 +272,7 @@ class DataGenerator implements ConstructContainerEntryGenerator {
       amplifyApi.resources.graphqlApi
     );
 
-    functionSchemaAccess.forEach((accessDefinition) => {
+    schemasFunctionSchemaAccess.forEach((accessDefinition) => {
       const policy = policyGenerator.generateGraphqlAccessPolicy(
         accessDefinition.actions
       );

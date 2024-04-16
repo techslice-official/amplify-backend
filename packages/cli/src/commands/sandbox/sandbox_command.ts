@@ -1,4 +1,4 @@
-import { Argv, CommandModule } from 'yargs';
+import { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
 import fsp from 'fs/promises';
 import { AmplifyPrompter } from '@aws-amplify/cli-core';
 import { SandboxSingletonFactory } from '@techslice-official/sandbox';
@@ -10,23 +10,21 @@ import {
   getClientConfigFileName,
   getClientConfigPath,
 } from '@aws-amplify/client-config';
-import { ArgumentsKebabCase } from '../../kebab_case.js';
 import { ClientConfigLifecycleHandler } from '../../client-config/client_config_lifecycle_handler.js';
 import { ClientConfigGeneratorAdapter } from '../../client-config/client_config_generator_adapter.js';
 import { CommandMiddleware } from '../../command_middleware.js';
+import { SandboxCommandGlobalOptions } from './option_types.js';
+import { ArgumentsKebabCase } from '../../kebab_case.js';
 
-export type SandboxCommandOptions =
-  ArgumentsKebabCase<SandboxCommandOptionsCamelCase>;
-
-type SandboxCommandOptionsCamelCase = {
-  dirToWatch: string | undefined;
-  exclude: string[] | undefined;
-  name: string | undefined;
-  configFormat: ClientConfigFormat | undefined;
-  configOutDir: string | undefined;
-  configVersion: string;
-  profile: string | undefined;
-};
+export type SandboxCommandOptionsKebabCase = ArgumentsKebabCase<
+  {
+    dirToWatch: string | undefined;
+    exclude: string[] | undefined;
+    configFormat: ClientConfigFormat | undefined;
+    configOutDir: string | undefined;
+    configVersion: string;
+  } & SandboxCommandGlobalOptions
+>;
 
 export type EventHandler = (...args: unknown[]) => void;
 
@@ -37,7 +35,7 @@ export type SandboxEventHandlers = {
 };
 
 export type SandboxEventHandlerParams = {
-  sandboxName?: string;
+  sandboxIdentifier?: string;
   clientConfigLifecycleHandler: ClientConfigLifecycleHandler;
 };
 
@@ -49,7 +47,7 @@ export type SandboxEventHandlerCreator = (
  * Command that starts sandbox.
  */
 export class SandboxCommand
-  implements CommandModule<object, SandboxCommandOptions>
+  implements CommandModule<object, SandboxCommandOptionsKebabCase>
 {
   /**
    * @inheritDoc
@@ -61,7 +59,7 @@ export class SandboxCommand
    */
   readonly describe: string;
 
-  private sandboxName?: string;
+  private sandboxIdentifier?: string;
 
   /**
    * Creates sandbox command.
@@ -80,19 +78,21 @@ export class SandboxCommand
   /**
    * @inheritDoc
    */
-  handler = async (args: SandboxCommandOptions): Promise<void> => {
+  handler = async (
+    args: ArgumentsCamelCase<SandboxCommandOptionsKebabCase>
+  ): Promise<void> => {
     const sandbox = await this.sandboxFactory.getInstance();
-    this.sandboxName = args.name;
+    this.sandboxIdentifier = args.identifier;
 
     // attaching event handlers
     const clientConfigLifecycleHandler = new ClientConfigLifecycleHandler(
       this.clientConfigGeneratorAdapter,
-      args['config-version'] as ClientConfigVersion,
-      args['config-out-dir'],
-      args['config-format']
+      args.configVersion as ClientConfigVersion,
+      args.configOutDir,
+      args.configFormat
     );
     const eventHandlers = this.sandboxEventHandlerCreator?.({
-      sandboxName: this.sandboxName,
+      sandboxIdentifier: this.sandboxIdentifier,
       clientConfigLifecycleHandler,
     });
     if (eventHandlers) {
@@ -102,18 +102,18 @@ export class SandboxCommand
     }
     const watchExclusions = args.exclude ?? [];
     const fileName = getClientConfigFileName(
-      args['config-version'] as ClientConfigVersion
+      args.configVersion as ClientConfigVersion
     );
     const clientConfigWritePath = await getClientConfigPath(
       fileName,
-      args['config-out-dir'],
-      args['config-format']
+      args.configOutDir,
+      args.configFormat
     );
     watchExclusions.push(clientConfigWritePath);
     await sandbox.start({
-      dir: args['dir-to-watch'],
+      dir: args.dirToWatch,
       exclude: watchExclusions,
-      name: args.name,
+      identifier: args.identifier,
       profile: args.profile,
     });
     process.once('SIGINT', () => void this.sigIntHandler());
@@ -122,7 +122,7 @@ export class SandboxCommand
   /**
    * @inheritDoc
    */
-  builder = (yargs: Argv): Argv<SandboxCommandOptions> => {
+  builder = (yargs: Argv): Argv<SandboxCommandOptionsKebabCase> => {
     return (
       yargs
         // Cast to erase options types used in internal sub command implementation. Otherwise, compiler fails here.
@@ -142,12 +142,11 @@ export class SandboxCommand
           array: true,
           global: false,
         })
-        .option('name', {
+        .option('identifier', {
           describe:
-            'An optional name to distinguish between different sandbox environments. Default is the name in your package.json',
+            'An optional identifier to distinguish between different sandboxes. Default is the name of the system user executing the process',
           type: 'string',
           array: false,
-          global: false,
         })
         .option('config-format', {
           describe: 'Client config output format',
@@ -180,11 +179,11 @@ export class SandboxCommand
           if (argv['dir-to-watch']) {
             await this.validateDirectory('dir-to-watch', argv['dir-to-watch']);
           }
-          if (argv.name) {
-            const projectNameRegex = /^[a-zA-Z0-9-]{1,15}$/;
-            if (!argv.name.match(projectNameRegex)) {
+          if (argv.identifier) {
+            const identifierRegex = /^[a-zA-Z0-9-]{1,15}$/;
+            if (!argv.identifier.match(identifierRegex)) {
               throw new Error(
-                `--name should match [a-zA-Z0-9-] and less than 15 characters.`
+                `--identifier should match [a-zA-Z0-9-] and be less than 15 characters.`
               );
             }
           }
@@ -203,7 +202,7 @@ export class SandboxCommand
     if (answer)
       await (
         await this.sandboxFactory.getInstance()
-      ).delete({ name: this.sandboxName });
+      ).delete({ identifier: this.sandboxIdentifier });
   };
 
   private validateDirectory = async (option: string, dir: string) => {

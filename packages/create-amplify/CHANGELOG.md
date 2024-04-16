@@ -1,5 +1,47 @@
 # create-amplify
 
+## 0.7.0-beta.12
+
+### Minor Changes
+
+- c1ec6e1: remove new lines on create-amplify
+
+### Patch Changes
+
+- 54c69c4: chore: rename the new client config file name
+- 4123204: fix: order of array in test assert in gitignored tests
+- Updated dependencies [6c6af9b]
+- Updated dependencies [48ff3bd]
+- Updated dependencies [1c52df1]
+  - @aws-amplify/platform-core@0.5.0-beta.5
+  - @aws-amplify/plugin-types@0.9.0-beta.2
+  - @aws-amplify/cli-core@0.5.0-beta.10
+
+## 0.7.0-beta.11
+
+### Patch Changes
+
+- 73d8da4: Updated `data/resource.ts` template based on user study
+- Updated dependencies [77079c6]
+  - @aws-amplify/cli-core@0.5.0-beta.9
+
+## 0.7.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [4d47f63]
+  - @aws-amplify/cli-core@0.5.0-beta.8
+
+## 0.7.0-beta.9
+
+### Patch Changes
+
+- 11031fd: updated the client sample to have `await`
+- Updated dependencies [aec89f9]
+- Updated dependencies [2a69684]
+  - @aws-amplify/platform-core@0.5.0-beta.4
+  - @aws-amplify/cli-core@0.5.0-beta.7
+
 ## 0.7.0-beta.8
 
 ### Patch Changes

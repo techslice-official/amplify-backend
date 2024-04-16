@@ -26,7 +26,7 @@ import {
   UserPool,
   UserPoolClient,
 } from 'aws-cdk-lib/aws-cognito';
-import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { CfnFunction, Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { StackMetadataBackendOutputStorageStrategy } from '@aws-amplify/backend-output-storage';
 import {
   ConstructContainerStub,
@@ -36,6 +36,7 @@ import {
 import { AmplifyDataResources } from '@aws-amplify/data-construct';
 import { AmplifyUserError } from '@aws-amplify/platform-core';
 import { a } from '@aws-amplify/data-schema';
+import { AmplifyDataError } from './types.js';
 
 const CUSTOM_DDB_CFN_TYPE = 'Custom::AmplifyDynamoDBTable';
 
@@ -215,7 +216,23 @@ void describe('DataFactory', () => {
     });
   });
 
-  void it('does not throw if no auth resources are registered', () => {
+  void it('sets the api name to default name if a name property is not specified', () => {
+    resetFactoryCount();
+    dataFactory = defineData({
+      schema: testSchema,
+    });
+    const dataConstruct = dataFactory.getInstance(getInstanceProps);
+
+    const template = Template.fromStack(
+      Stack.of(dataConstruct.resources.graphqlApi)
+    );
+    template.resourceCountIs('AWS::AppSync::GraphQLApi', 1);
+    template.hasResourceProperties('AWS::AppSync::GraphQLApi', {
+      Name: 'amplifyData',
+    });
+  });
+
+  void it('does not throw if no auth resources are registered and only api key is provided', () => {
     resetFactoryCount();
     dataFactory = defineData({
       schema: testSchema,
@@ -237,18 +254,143 @@ void describe('DataFactory', () => {
     dataFactory.getInstance(getInstanceProps);
   });
 
-  void it('accepts functions as inputs to the defineData call', () => {
+  void it('does not throw if no auth resources are registered and only lambda is provided', () => {
+    const myEchoFn = new Function(stack, 'MyEchoFn', {
+      runtime: Runtime.NODEJS_18_X,
+      code: Code.fromInline(
+        'module.handler = async () => console.log("Hello");'
+      ),
+      handler: 'index.handler',
+    });
     resetFactoryCount();
     const echo: ConstructFactory<AmplifyFunction> = {
       getInstance: () => ({
         resources: {
-          lambda: new Function(stack, 'MyEchoFn', {
-            runtime: Runtime.NODEJS_18_X,
-            code: Code.fromInline(
-              'module.handler = async () => console.log("Hello");'
-            ),
-            handler: 'index.handler',
-          }),
+          lambda: myEchoFn,
+          cfnResources: {
+            cfnFunction: myEchoFn.node.findChild('Resource') as CfnFunction,
+          },
+        },
+      }),
+    };
+    dataFactory = defineData({
+      schema: testSchema,
+      authorizationModes: {
+        lambdaAuthorizationMode: {
+          function: echo,
+        },
+      },
+    });
+
+    constructContainer = new ConstructContainerStub(
+      new StackResolverStub(stack)
+    );
+    getInstanceProps = {
+      constructContainer,
+      outputStorageStrategy,
+      importPathVerifier,
+    };
+    dataFactory.getInstance(getInstanceProps);
+  });
+
+  void it('does not throw if no auth resources are registered and only oidc is provided', () => {
+    resetFactoryCount();
+    dataFactory = defineData({
+      schema: testSchema,
+      authorizationModes: {
+        oidcAuthorizationMode: {
+          oidcProviderName: 'test',
+          oidcIssuerUrl: 'https://localhost/',
+          tokenExpireFromIssueInSeconds: 1,
+          tokenExpiryFromAuthInSeconds: 1,
+        },
+      },
+    });
+
+    constructContainer = new ConstructContainerStub(
+      new StackResolverStub(stack)
+    );
+    getInstanceProps = {
+      constructContainer,
+      outputStorageStrategy,
+      importPathVerifier,
+    };
+    dataFactory.getInstance(getInstanceProps);
+  });
+
+  void it('does not throw if no auth resources and no auth mode is specified', () => {
+    resetFactoryCount();
+    dataFactory = defineData({
+      schema: testSchema,
+    });
+
+    constructContainer = new ConstructContainerStub(
+      new StackResolverStub(stack)
+    );
+    getInstanceProps = {
+      constructContainer,
+      outputStorageStrategy,
+      importPathVerifier,
+    };
+    dataFactory.getInstance(getInstanceProps);
+  });
+
+  void it('throws if multiple authorization modes are provided but no default', () => {
+    resetFactoryCount();
+    dataFactory = defineData({
+      schema: testSchema,
+      authorizationModes: {
+        apiKeyAuthorizationMode: {},
+        oidcAuthorizationMode: {
+          oidcProviderName: 'test',
+          oidcIssuerUrl: 'https://localhost/',
+          tokenExpireFromIssueInSeconds: 1,
+          tokenExpiryFromAuthInSeconds: 1,
+        },
+      },
+    });
+
+    constructContainer = new ConstructContainerStub(
+      new StackResolverStub(stack)
+    );
+    getInstanceProps = {
+      constructContainer,
+      outputStorageStrategy,
+      importPathVerifier,
+    };
+    assert.throws(
+      () => dataFactory.getInstance(getInstanceProps),
+      (err: AmplifyUserError<AmplifyDataError>) => {
+        assert.strictEqual(err.name, 'DefineDataConfigurationError');
+        assert.strictEqual(
+          err.message,
+          'A defaultAuthorizationMode is required if multiple authorization modes are configured'
+        );
+        assert.strictEqual(
+          err.resolution,
+          "When calling 'defineData' specify 'authorizationModes.defaultAuthorizationMode'"
+        );
+        return true;
+      }
+    );
+  });
+
+  void it('accepts functions as inputs to the defineData call', () => {
+    resetFactoryCount();
+    const myEchoFn = new Function(stack, 'MyEchoFn', {
+      runtime: Runtime.NODEJS_18_X,
+      code: Code.fromInline(
+        'module.handler = async () => console.log("Hello");'
+      ),
+      handler: 'index.handler',
+    });
+    const echo: ConstructFactory<AmplifyFunction> = {
+      getInstance: () => ({
+        resources: {
+          lambda: myEchoFn,
+          cfnResources: {
+            cfnFunction: myEchoFn.node.findChild('Resource') as CfnFunction,
+          },
         },
       }),
     };
@@ -315,6 +457,9 @@ void describe('DataFactory', () => {
         getInstance: () => ({
           resources: {
             lambda,
+            cfnResources: {
+              cfnFunction: lambda.node.findChild('Resource') as CfnFunction,
+            },
           },
           getResourceAccessAcceptor: () => ({
             identifier: 'testId',
@@ -466,6 +611,9 @@ void describe('DataFactory', () => {
         getInstance: () => ({
           resources: {
             lambda: lambda1,
+            cfnResources: {
+              cfnFunction: lambda1.node.findChild('Resource') as CfnFunction,
+            },
           },
           getResourceAccessAcceptor: () => ({
             identifier: 'testId1',
@@ -491,6 +639,9 @@ void describe('DataFactory', () => {
         getInstance: () => ({
           resources: {
             lambda: lambda2,
+            cfnResources: {
+              cfnFunction: lambda2.node.findChild('Resource') as CfnFunction,
+            },
           },
           getResourceAccessAcceptor: () => ({
             identifier: 'testId2',

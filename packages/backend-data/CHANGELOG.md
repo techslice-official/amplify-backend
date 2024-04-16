@@ -1,5 +1,52 @@
 # @aws-amplify/backend-data
 
+## 0.10.0-beta.12
+
+### Minor Changes
+
+- 911c4c6: chore!: update data-construct, data-schema, data-schema-types dependencies
+
+### Patch Changes
+
+- ab739ea: backend-data sql PR naming cleanup
+- Updated dependencies [1e93535]
+  - @aws-amplify/backend-output-schemas@0.7.0-beta.1
+  - @aws-amplify/backend-output-storage@0.4.0-beta.6
+
+## 0.10.0-beta.11
+
+### Patch Changes
+
+- 6c6af9b: chore: convert errors to AmplifyUserError
+- a6f35a8: feat: Allow defineData to process combined and RDS schemas
+- 48ff3bd: Add cfnFunction to function resources
+- 6b217e6: Fixes bug where apiName can resolve to undefined
+- Updated dependencies [48ff3bd]
+  - @aws-amplify/plugin-types@0.9.0-beta.2
+  - @aws-amplify/backend-output-storage@0.4.0-beta.5
+
+## 0.10.0-beta.10
+
+### Minor Changes
+
+- f76e983: Use updated metadata fields in form and model generation
+
+## 0.10.0-beta.9
+
+### Patch Changes
+
+- 915bf98: upgrade @aws-amplify/data-construct dependency
+
+## 0.10.0-beta.8
+
+### Minor Changes
+
+- f6489a8: enable iam auth in defineData
+
+### Patch Changes
+
+- @aws-amplify/backend-output-storage@0.4.0-beta.4
+
 ## 0.10.0-beta.7
 
 ### Patch Changes

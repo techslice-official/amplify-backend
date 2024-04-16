@@ -8,13 +8,72 @@ import {
  * Transforms CDK error messages to human readable ones
  */
 export class CdkErrorMapper {
-  private knownErrors: Array<{
+  private placeHolder = 'PLACEHOLDER';
+
+  getAmplifyError = (
+    error: Error
+  ): AmplifyError<CDKDeploymentError | string> => {
+    let underlyingError: Error | undefined = error;
+
+    // Check if there was an Amplify error thrown during child process execution
+    const amplifyError = AmplifyError.fromStderr(error.message);
+    if (amplifyError) {
+      return amplifyError;
+    }
+
+    const matchingError = this.getKnownErrors().find((knownError) =>
+      knownError.errorRegex.test(error.message)
+    );
+
+    if (matchingError) {
+      // Extract meaningful contextual information if available
+      const matchGroups = error.message.match(matchingError.errorRegex);
+
+      if (matchGroups && matchGroups.length > 1) {
+        // If the contextual information can be used in the error message use it, else consider it as a downstream cause
+        if (
+          matchingError.humanReadableErrorMessage.includes(this.placeHolder)
+        ) {
+          matchingError.humanReadableErrorMessage =
+            matchingError.humanReadableErrorMessage.replace(
+              this.placeHolder,
+              matchGroups[1] // matching group instead of the matching string
+            );
+          // reset the stderr dump in the underlying error
+          underlyingError = undefined;
+        } else {
+          underlyingError.message = matchGroups[0];
+        }
+      }
+
+      return matchingError.classification === 'ERROR'
+        ? new AmplifyUserError(
+            matchingError.errorName,
+            {
+              message: matchingError.humanReadableErrorMessage,
+              resolution: matchingError.resolutionMessage,
+            },
+            underlyingError
+          )
+        : new AmplifyFault(
+            matchingError.errorName,
+            {
+              message: matchingError.humanReadableErrorMessage,
+              resolution: matchingError.resolutionMessage,
+            },
+            underlyingError
+          );
+    }
+    return AmplifyError.fromError(error);
+  };
+
+  private getKnownErrors = (): Array<{
     errorRegex: RegExp;
     humanReadableErrorMessage: string;
     resolutionMessage: string;
     errorName: CDKDeploymentError;
     classification: AmplifyErrorClassification;
-  }> = [
+  }> => [
     {
       errorRegex: /ExpiredToken/,
       humanReadableErrorMessage:
@@ -42,12 +101,58 @@ export class CdkErrorMapper {
       classification: 'ERROR',
     },
     {
-      errorRegex: /(SyntaxError|ReferenceError):(.*)\n/,
+      errorRegex: /(SyntaxError|ReferenceError|TypeError):((?:.|\n)*?at .*)/,
       humanReadableErrorMessage:
         'Unable to build the Amplify backend definition.',
       resolutionMessage:
         'Check your backend definition in the `amplify` folder for syntax and type errors.',
       errorName: 'SyntaxError',
+      classification: 'ERROR',
+    },
+    {
+      errorRegex: /Unable to resolve AWS account to use/,
+      humanReadableErrorMessage:
+        'Unable to resolve AWS account to use. It must be either configured when you define your CDK Stack, or through the environment',
+      resolutionMessage:
+        'You can retry your last request as this is most likely a transient issue: https://github.com/aws/aws-cdk/issues/24744. If the error persists ensure your local AWS credentials are valid.',
+      errorName: 'CDKResolveAWSAccountError',
+      classification: 'ERROR',
+    },
+    {
+      errorRegex: /EACCES(.*)/,
+      humanReadableErrorMessage: 'File permissions error',
+      resolutionMessage:
+        'Check that you have the right access permissions to the mentioned file',
+      errorName: 'FilePermissionsError',
+      classification: 'ERROR',
+    },
+    {
+      errorRegex:
+        /\[ERR_MODULE_NOT_FOUND\]:(.*)\n|Error: Cannot find module (.*)/,
+      humanReadableErrorMessage: 'Cannot find module',
+      resolutionMessage:
+        'Check your backend definition in the `amplify` folder for missing file or package imports. Try installing them with your package manager.',
+      errorName: 'ModuleNotFoundError',
+      classification: 'ERROR',
+    },
+    {
+      // Truncate the cdk error message's second line (Invoke the CLI in sequence, or use '--output' to synth into different directories.)
+      errorRegex:
+        /Another CLI (.*) is currently(.*)\. |Other CLIs (.*) are currently reading from(.*)\. /,
+      humanReadableErrorMessage: 'Multiple sandbox instances detected.',
+      resolutionMessage:
+        'Make sure only one instance of sandbox is running for this project',
+      errorName: 'MultipleSandboxInstancesError',
+      classification: 'ERROR',
+    },
+    {
+      // Also extracts the first line in the stack where the error happened
+      errorRegex: /\[esbuild Error\]: ((?:.|\n)*?at .*)/,
+      humanReadableErrorMessage:
+        'Unable to build the Amplify backend definition.',
+      resolutionMessage:
+        'Check your backend definition in the `amplify` folder for syntax and type errors.',
+      errorName: 'ESBuildError',
       classification: 'ERROR',
     },
     {
@@ -64,15 +169,6 @@ export class CdkErrorMapper {
         'File name or path for backend definition are incorrect.',
       resolutionMessage: 'Ensure that the amplify/backend.(ts|js) file exists',
       errorName: 'FileConventionError',
-      classification: 'ERROR',
-    },
-    {
-      // the backend entry point file is referenced in the stack indicating a problem in customer code
-      errorRegex: /amplify\/backend/,
-      humanReadableErrorMessage: 'Unable to build Amplify backend.',
-      resolutionMessage:
-        'Check your backend definition in the `amplify` folder for syntax and type errors.',
-      errorName: 'BackendBuildError',
       classification: 'ERROR',
     },
     {
@@ -98,6 +194,36 @@ export class CdkErrorMapper {
       classification: 'ERROR',
     },
     {
+      // Error: .* is printed to stderr during cdk synth
+      // Also extracts the first line in the stack where the error happened
+      errorRegex: /^Error: (.*\n.*at.*)/m,
+      humanReadableErrorMessage:
+        'Unable to build the Amplify backend definition.',
+      resolutionMessage:
+        'Check your backend definition in the `amplify` folder for syntax and type errors.',
+      errorName: 'BackendSynthError',
+      classification: 'ERROR',
+    },
+    {
+      // "Catch all": the backend entry point file is referenced in the stack indicating a problem in customer code
+      errorRegex: /amplify\/backend/,
+      humanReadableErrorMessage: 'Unable to build Amplify backend.',
+      resolutionMessage:
+        'Check your backend definition in the `amplify` folder for syntax and type errors.',
+      errorName: 'BackendBuildError',
+      classification: 'ERROR',
+    },
+    {
+      // We capture the parameter name to show relevant error message
+      errorRegex:
+        /Failed to retrieve backend secret (.*) for.*ParameterNotFound/,
+      humanReadableErrorMessage: `The secret ${this.placeHolder} specified in the backend does not exist.`,
+      resolutionMessage:
+        'Create secrets using the command `npx amplify sandbox secret set`. For more information, see https://docs.amplify.aws/gen2/deploy-and-host/sandbox-environments/features/#set-secrets',
+      errorName: 'SecretNotSetError',
+      classification: 'ERROR',
+    },
+    {
       // Note that the order matters, this should be the last as it captures generic CFN error
       errorRegex: /❌ Deployment failed: (.*)\n/,
       humanReadableErrorMessage: 'The CloudFormation deployment has failed.',
@@ -107,58 +233,22 @@ export class CdkErrorMapper {
       classification: 'ERROR',
     },
   ];
-
-  getAmplifyError = (
-    error: Error
-  ): AmplifyError<CDKDeploymentError | string> => {
-    // Check if there was an Amplify error thrown during child process execution
-    const amplifyError = AmplifyError.fromStderr(error.message);
-    if (amplifyError) {
-      return amplifyError;
-    }
-
-    const matchingError = this.knownErrors.find((knownError) =>
-      knownError.errorRegex.test(error.message)
-    );
-
-    if (matchingError) {
-      // Extract meaningful contextual information if available
-      const underlyingMessage = error.message.match(matchingError.errorRegex);
-      error.message =
-        underlyingMessage && underlyingMessage.length > 1
-          ? underlyingMessage[0]
-          : error.message;
-
-      return matchingError.classification === 'ERROR'
-        ? new AmplifyUserError(
-            matchingError.errorName,
-            {
-              message: matchingError.humanReadableErrorMessage,
-              resolution: matchingError.resolutionMessage,
-            },
-            error
-          )
-        : new AmplifyFault(
-            matchingError.errorName,
-            {
-              message: matchingError.humanReadableErrorMessage,
-              resolution: matchingError.resolutionMessage,
-            },
-            error
-          );
-    }
-    return AmplifyError.fromError(error);
-  };
 }
 
 export type CDKDeploymentError =
-  | 'ExpiredTokenError'
   | 'AccessDeniedError'
-  | 'BootstrapNotDetectedError'
-  | 'SyntaxError'
-  | 'FileConventionError'
-  | 'FileConventionError'
   | 'BackendBuildError'
+  | 'BackendSynthError'
+  | 'BootstrapNotDetectedError'
+  | 'CDKResolveAWSAccountError'
   | 'CFNUpdateNotSupportedError'
-  | 'CFNUpdateNotSupportedError'
-  | 'CloudFormationDeploymentError';
+  | 'CloudFormationDeploymentError'
+  | 'FilePermissionsError'
+  | 'MultipleSandboxInstancesError'
+  | 'ESBuildError'
+  | 'ExpiredTokenError'
+  | 'FileConventionError'
+  | 'FileConventionError'
+  | 'ModuleNotFoundError'
+  | 'SecretNotSetError'
+  | 'SyntaxError';

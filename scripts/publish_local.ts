@@ -1,29 +1,22 @@
 import { execa } from 'execa';
 import { runPublish } from './publish_runner.js';
 import * as path from 'path';
+import { runVersion } from './version_runner.js';
+import { GitClient } from './components/git_client.js';
 
 const runArgs = process.argv.slice(2);
 
 const keepGitDiff = runArgs.find((arg) => arg === '--keepGitDiff');
 
+const gitClient = new GitClient();
+
 if (!keepGitDiff) {
-  const isCleanWorkingTree = async (): Promise<boolean> => {
-    const buffer = await execa('git', ['status', '--porcelain']);
-    return !buffer.stdout.trim();
-  };
-  const isCleanTree = await isCleanWorkingTree();
-  if (!isCleanTree) {
-    throw new Error(
-      `Detected a dirty working tree. Commit or stash changes before publishing a snapshot`
-    );
-  }
+  await gitClient.ensureWorkingTreeIsClean();
 }
 
 // this command will write staged changesets into changelog files and update versions
 // this is reverted at the end of this script
-await execa('changeset', ['version'], {
-  stdio: 'inherit',
-});
+await runVersion();
 
 await runPublish({
   includeGitTags: false,

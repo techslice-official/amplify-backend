@@ -1,5 +1,35 @@
 # @aws-amplify/model-generator
 
+## 0.5.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [1e93535]
+  - @aws-amplify/backend-output-schemas@0.7.0-beta.1
+  - @aws-amplify/deployed-backend-client@0.4.0-beta.7
+
+## 0.5.0-beta.8
+
+### Minor Changes
+
+- a494aca: refactor: use default directives
+
+### Patch Changes
+
+- @aws-amplify/deployed-backend-client@0.4.0-beta.6
+
+## 0.5.0-beta.7
+
+### Patch Changes
+
+- 592bd4f: refactor log abstraction in `client-config`, `form-generator`, and `model-generator` packages
+
+## 0.5.0-beta.6
+
+### Patch Changes
+
+- @aws-amplify/deployed-backend-client@0.4.0-beta.5
+
 ## 0.5.0-beta.5
 
 ### Minor Changes
