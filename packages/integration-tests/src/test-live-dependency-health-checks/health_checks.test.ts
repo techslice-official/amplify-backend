@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import { execa } from 'execa';
-import { amplifyCli } from '../process-controller/process_controller.js';
+import { ampxCli } from '../process-controller/process_controller.js';
 import { TestBranch, amplifyAppPool } from '../amplify_app_pool.js';
 import assert from 'node:assert';
 import { existsSync } from 'fs';
@@ -83,7 +83,7 @@ void describe('Live dependency health checks', { concurrency: true }, () => {
         stdio: 'inherit',
       });
 
-      await amplifyCli(
+      await ampxCli(
         [
           'pipeline-deploy',
           '--branch',
@@ -98,7 +98,7 @@ void describe('Live dependency health checks', { concurrency: true }, () => {
       ).run();
 
       const clientConfigStats = await fs.stat(
-        path.join(tempDir, 'amplifyconfiguration.json')
+        path.join(tempDir, 'amplify_outputs.json')
       );
       assert.ok(clientConfigStats.isFile());
     });
@@ -120,18 +120,18 @@ void describe('Live dependency health checks', { concurrency: true }, () => {
         stdio: 'inherit',
       });
 
-      await amplifyCli(['sandbox'], tempDir)
+      await ampxCli(['sandbox'], tempDir)
         .do(waitForSandboxDeploymentToPrintTotalTime())
         .do(interruptSandbox())
         .do(rejectCleanupSandbox())
         .run();
 
       const clientConfigStats = await fs.stat(
-        path.join(tempDir, 'amplifyconfiguration.json')
+        path.join(tempDir, 'amplify_outputs.json')
       );
       assert.ok(clientConfigStats.isFile());
 
-      await amplifyCli(['sandbox', 'delete'], tempDir)
+      await ampxCli(['sandbox', 'delete'], tempDir)
         .do(confirmDeleteSandbox())
         .run();
     });

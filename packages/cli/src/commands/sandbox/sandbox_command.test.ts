@@ -1,13 +1,14 @@
 import { beforeEach, describe, it, mock } from 'node:test';
-import { AmplifyPrompter, printer } from '@aws-amplify/cli-core';
+import assert from 'node:assert';
+import fs from 'fs';
+import fsp from 'fs/promises';
+import path from 'path';
 import yargs, { CommandModule } from 'yargs';
 import {
   TestCommandError,
   TestCommandRunner,
 } from '../../test-utils/command_runner.js';
-import assert from 'node:assert';
-import fs from 'fs';
-import fsp from 'fs/promises';
+import { AmplifyPrompter, format, printer } from '@aws-amplify/cli-core';
 import { EventHandler, SandboxCommand } from './sandbox_command.js';
 import { createSandboxCommand } from './sandbox_command_factory.js';
 import { SandboxDeleteCommand } from './sandbox-delete/sandbox_delete_command.js';
@@ -15,9 +16,11 @@ import { Sandbox, SandboxSingletonFactory } from '@techslice-official/sandbox';
 import { createSandboxSecretCommand } from './sandbox-secret/sandbox_secret_command_factory.js';
 import { ClientConfigGeneratorAdapter } from '../../client-config/client_config_generator_adapter.js';
 import { CommandMiddleware } from '../../command_middleware.js';
-import path from 'path';
 
 mock.method(fsp, 'mkdir', () => Promise.resolve());
+
+// To check if client config already exists before creating an empty one.
+mock.method(fs, 'existsSync', () => true);
 
 void describe('sandbox command factory', () => {
   void it('instantiate a sandbox command correctly', () => {
@@ -53,7 +56,8 @@ void describe('sandbox command', () => {
           name: 'testSandboxName',
           type: 'sandbox',
         }),
-      printer
+      printer,
+      format
     );
     sandbox = await sandboxFactory.getInstance();
 
@@ -111,8 +115,9 @@ void describe('sandbox command', () => {
     assert.match(output, /--identifier/);
     assert.match(output, /--dir-to-watch/);
     assert.match(output, /--exclude/);
-    assert.match(output, /--config-format/);
-    assert.match(output, /--config-out-dir/);
+    assert.match(output, /--outputs-format/);
+    assert.match(output, /--outputs-out-dir/);
+    assert.match(output, /--once/);
     assert.equal(mockHandleProfile.mock.callCount(), 0);
   });
 
@@ -249,7 +254,8 @@ void describe('sandbox command', () => {
           name: 'testSandboxName',
           type: 'sandbox',
         }),
-      printer
+      printer,
+      format
     );
     sandbox = await sandboxFactory.getInstance();
     sandboxStartMock = mock.method(sandbox, 'start', () => Promise.resolve());
@@ -272,40 +278,79 @@ void describe('sandbox command', () => {
   });
 
   void it('starts sandbox if a value containing "." is provided for config-out-dir', async () => {
-    // this is a valid case to maintain consistency with behaviors of amplify generate graphql-client-code/forms
+    // this is a valid case to maintain consistency with behaviors of ampx generate graphql-client-code/forms
     await commandRunner.runCommand(
-      'sandbox --config-out-dir existentFile.json'
+      'sandbox --outputs-out-dir existentFile.json'
     );
     assert.equal(sandboxStartMock.mock.callCount(), 1);
     assert.deepStrictEqual(
       sandboxStartMock.mock.calls[0].arguments[0].exclude,
-      [
-        path.join(
-          process.cwd(),
-          'existentFile.json',
-          'amplifyconfiguration.json'
-        ),
-      ]
+      [path.join(process.cwd(), 'existentFile.json', 'amplify_outputs.json')]
     );
   });
 
   void it('starts sandbox with provided client config options as watch exclusions', async (contextual) => {
-    mock.method(fs, 'lstatSync', () => {
-      return {
-        isFile: () => false,
-        isDir: () => true,
-      };
-    });
     contextual.mock.method(fsp, 'stat', () => ({
       isDirectory: () => true,
     }));
     await commandRunner.runCommand(
-      'sandbox --config-out-dir existentDir --config-format ts'
+      'sandbox --outputs-out-dir existentDir --outputs-format dart'
     );
     assert.equal(sandboxStartMock.mock.callCount(), 1);
     assert.deepStrictEqual(
       sandboxStartMock.mock.calls[0].arguments[0].exclude,
-      [path.join(process.cwd(), 'existentDir', 'amplifyconfiguration.ts')]
+      [path.join(process.cwd(), 'existentDir', 'amplify_outputs.dart')]
+    );
+  });
+
+  void it('sandbox creates an empty client config file if one does not already exist for version 0', async (contextual) => {
+    contextual.mock.method(fs, 'existsSync', () => false);
+    const writeFileMock = contextual.mock.method(fsp, 'writeFile', () => true);
+    await commandRunner.runCommand('sandbox --outputs-version 0');
+    assert.equal(sandboxStartMock.mock.callCount(), 1);
+    assert.equal(writeFileMock.mock.callCount(), 1);
+    assert.deepStrictEqual(writeFileMock.mock.calls[0].arguments[1], '{}');
+    assert.deepStrictEqual(
+      writeFileMock.mock.calls[0].arguments[0],
+      path.join(process.cwd(), 'amplifyconfiguration.json')
+    );
+  });
+
+  void it('sandbox creates an empty client config file if one does not already exist for version 1', async (contextual) => {
+    contextual.mock.method(fs, 'existsSync', () => false);
+    const writeFileMock = contextual.mock.method(fsp, 'writeFile', () => true);
+    await commandRunner.runCommand('sandbox --outputs-version 1');
+    assert.equal(sandboxStartMock.mock.callCount(), 1);
+    assert.equal(writeFileMock.mock.callCount(), 1);
+    assert.deepStrictEqual(
+      writeFileMock.mock.calls[0].arguments[1],
+      `{\n  "version": "1"\n}`
+    );
+    assert.deepStrictEqual(
+      writeFileMock.mock.calls[0].arguments[0],
+      path.join(process.cwd(), 'amplify_outputs.json')
+    );
+  });
+
+  void it('starts sandbox with watchForChanges when --once flag is set', async () => {
+    await commandRunner.runCommand('sandbox --once');
+    assert.equal(sandboxStartMock.mock.callCount(), 1);
+    assert.strictEqual(
+      sandboxStartMock.mock.calls[0].arguments[0].watchForChanges,
+      false
+    );
+  });
+
+  void it('--once flag is mutually exclusive with dir-to-watch & exclude', async () => {
+    assert.match(
+      await commandRunner.runCommand(
+        'sandbox --once --dir-to-watch nonExistentDir'
+      ),
+      /Arguments once and dir-to-watch are mutually exclusive/
+    );
+    assert.match(
+      await commandRunner.runCommand('sandbox --once --exclude test'),
+      /Arguments once and exclude are mutually exclusive/
     );
   });
 });

@@ -10,13 +10,14 @@ import { getTestProjectCreators } from '../test-project-setup/test_project_creat
 import { TestProjectBase } from '../test-project-setup/test_project_base.js';
 import { userInfo } from 'os';
 import { PredicatedActionBuilder } from '../process-controller/predicated_action_queue_builder.js';
-import { amplifyCli } from '../process-controller/process_controller.js';
+import { ampxCli } from '../process-controller/process_controller.js';
 import path from 'path';
 import {
   ensureDeploymentTimeLessThan,
   interruptSandbox,
   rejectCleanupSandbox,
   replaceFiles,
+  waitForConfigUpdateAfterDeployment,
 } from '../process-controller/predicated_action_macros.js';
 import assert from 'node:assert';
 import { TestBranch, amplifyAppPool } from '../amplify_app_pool.js';
@@ -83,11 +84,14 @@ void describe('deployment tests', { concurrency: testConcurrencyLevel }, () => {
           );
 
           // test generating all client formats
-          for (const format of Object.values(ClientConfigFormat)) {
-            await amplifyCli(
+          for (const format of [
+            ClientConfigFormat.DART,
+            ClientConfigFormat.JSON,
+          ]) {
+            await ampxCli(
               [
                 'generate',
-                'config',
+                'outputs',
                 '--branch',
                 testBranch.branchName,
                 '--app-id',
@@ -137,8 +141,23 @@ void describe('deployment tests', { concurrency: testConcurrencyLevel }, () => {
             await testProject.assertPostDeployment(sandboxBackendIdentifier);
           });
 
+          void it('generates config after sandbox --once deployment', async () => {
+            const processController = ampxCli(
+              ['sandbox', '--once'],
+              testProject.projectDirPath,
+              {
+                env: sharedSecretsEnv,
+              }
+            );
+            await processController
+              .do(waitForConfigUpdateAfterDeployment())
+              .run();
+
+            await testProject.assertPostDeployment(sandboxBackendIdentifier);
+          });
+
           void it(`[${testProjectCreator.name}] hot-swaps a change`, async () => {
-            const processController = amplifyCli(
+            const processController = ampxCli(
               ['sandbox', '--dirToWatch', 'amplify'],
               testProject.projectDirPath,
               {
@@ -187,7 +206,7 @@ void describe('deployment tests', { concurrency: testConcurrencyLevel }, () => {
 
       void describe('in sequence', { concurrency: false }, () => {
         void it('in sandbox deploy', async () => {
-          await amplifyCli(
+          await ampxCli(
             ['sandbox', '--dirToWatch', 'amplify'],
             testProject.projectDirPath
           )
@@ -203,7 +222,7 @@ void describe('deployment tests', { concurrency: testConcurrencyLevel }, () => {
 
         void it('in pipeline deploy', async () => {
           await assert.rejects(() =>
-            amplifyCli(
+            ampxCli(
               [
                 'pipeline-deploy',
                 '--branch',

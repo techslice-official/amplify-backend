@@ -10,6 +10,7 @@
 import {
   LogLevel,
   PackageManagerControllerFactory,
+  format,
   printer,
 } from '@aws-amplify/cli-core';
 import { ProjectRootValidator } from './project_root_validator.js';
@@ -21,8 +22,7 @@ import { InitialProjectFileGenerator } from './initial_project_file_generator.js
 const projectRoot = await getProjectRoot();
 
 const packageManagerControllerFactory = new PackageManagerControllerFactory(
-  projectRoot,
-  printer
+  projectRoot
 );
 
 const packageManagerController =
@@ -39,9 +39,6 @@ const amplifyProjectCreator = new AmplifyProjectCreator(
 try {
   await amplifyProjectCreator.create();
 } catch (err) {
-  printer.log(
-    (err instanceof Error ? err.message : err) as string,
-    LogLevel.ERROR
-  );
+  printer.log(format.error(err), LogLevel.ERROR);
   process.exitCode = 1;
 }

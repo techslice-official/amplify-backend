@@ -10,12 +10,14 @@ import { CfnIdentityPoolRoleAttachment } from 'aws-cdk-lib/aws-cognito';
 import { CfnUserPool } from 'aws-cdk-lib/aws-cognito';
 import { CfnUserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { CfnUserPoolGroup } from 'aws-cdk-lib/aws-cognito';
+import { Client } from '@aws-sdk/types';
 import { Construct } from 'constructs';
 import { ExecaChildProcess } from 'execa';
 import { IFunction } from 'aws-cdk-lib/aws-lambda';
 import { IRole } from 'aws-cdk-lib/aws-iam';
 import { IUserPool } from 'aws-cdk-lib/aws-cognito';
 import { IUserPoolClient } from 'aws-cdk-lib/aws-cognito';
+import { MetadataBearer } from '@aws-sdk/types';
 import { Options } from 'execa';
 import { Policy } from 'aws-cdk-lib/aws-iam';
 import { SecretValue } from 'aws-cdk-lib';
@@ -52,6 +54,11 @@ export type AuthResources = {
 
 // @public (undocumented)
 export type AuthRoleName = keyof Pick<AuthResources, 'authenticatedUserIamRole' | 'unauthenticatedUserIamRole'>;
+
+// @public (undocumented)
+export type AWSClientProvider<T extends Record<`get${string}Client`, Client<object, MetadataBearer, unknown>>> = {
+    [K in keyof T]: () => T[K];
+};
 
 // @public
 export type BackendIdentifier = {
@@ -125,11 +132,12 @@ export type ConstructFactoryGetInstanceProps = {
     constructContainer: ConstructContainer;
     outputStorageStrategy: BackendOutputStorageStrategy<BackendOutputEntry>;
     importPathVerifier?: ImportPathVerifier;
+    resourceNameValidator?: ResourceNameValidator;
 };
 
 // @public
-export type DeepPartial<T> = {
-    [P in keyof T]?: DeepPartial<T[P]>;
+export type DeepPartialAmplifyGeneratedConfigs<T> = {
+    [P in keyof T]?: P extends 'auth' | 'data' | 'storage' ? T[P] extends object ? DeepPartialAmplifyGeneratedConfigs<T[P]> : Partial<T[P]> : T[P];
 };
 
 // @public
@@ -168,7 +176,6 @@ export type MainStackNameResolver = {
 
 // @public (undocumented)
 export type PackageManagerController = {
-    getWelcomeMessage: () => string;
     initializeProject: () => Promise<void>;
     initializeTsConfig: (targetDir: string) => Promise<void>;
     installDependencies: (packageNames: string[], type: 'dev' | 'prod') => Promise<void>;
@@ -194,6 +201,11 @@ export type ResourceAccessAcceptor = {
 // @public (undocumented)
 export type ResourceAccessAcceptorFactory<RoleIdentifier extends string | undefined = undefined> = {
     getResourceAccessAcceptor: (...roleIdentifier: RoleIdentifier extends string ? [RoleIdentifier] : []) => ResourceAccessAcceptor;
+};
+
+// @public
+export type ResourceNameValidator = {
+    validate: (resourceName: string) => void;
 };
 
 // @public

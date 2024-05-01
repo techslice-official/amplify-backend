@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - hotfix
   pull_request:
     branches:
       - main
+      - hotfix
       - feature/**
   workflow_dispatch:
 
@@ -18,8 +20,9 @@ jobs:
         # Larger workers use different drive (C: instead of D:) to check out project and NPM installation
         # creates file system links that include drive letter.
         # Changing between standard and custom workers requires full install cache invalidation
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-14, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # version 3.6.0
       - uses: ./.github/actions/setup_node
@@ -37,7 +40,7 @@ jobs:
       - build
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-14, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # version 3.6.0
@@ -133,7 +136,7 @@ jobs:
       # will finish running other test matrices even if one fails
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest-xl, windows-latest]
+        os: [ubuntu-latest, macos-14-xlarge, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     needs:
@@ -167,7 +170,7 @@ jobs:
       # will finish running other test matrices even if one fails
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest-xl, windows-latest]
+        os: [ubuntu-latest, macos-14, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: ${{ matrix.os == 'windows-latest' && 35 || 25 }}
     needs:
@@ -186,7 +189,7 @@ jobs:
       # will finish running other test matrices even if one fails
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-14, windows-latest]
         pkg-manager: [npm, yarn-classic, yarn-modern, pnpm]
         node-version: [20]
     env:
@@ -300,10 +303,11 @@ jobs:
       - uses: ./.github/actions/restore_install_cache
       - name: Validate that PR has change set
         run: |
-          npx changeset status --since origin/main
+          npx changeset status --since origin/${{ github.event.pull_request.base.ref }}
       - name: Validate that change set has necessary dependency updates
         run: |
           npx changeset version
+          npm update
           npm run check:dependencies
   check_package_versions:
     if: github.event_name == 'pull_request'
@@ -315,8 +319,32 @@ jobs:
       - uses: ./.github/actions/setup_node
       - uses: ./.github/actions/restore_install_cache
       - run: npm run check:package-versions
-  update_or_publish_versions:
-    if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+
+  update_package_versions:
+    if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'hotfix') }}
+    needs:
+      - install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # version 3.6.0
+      - uses: ./.github/actions/setup_node
+      - uses: ./.github/actions/restore_install_cache
+      - id: is_version_packages_commit
+        run: npx tsx scripts/is_version_packages_commit.ts "$GITHUB_EVENT_PATH" >> "$GITHUB_OUTPUT"
+      - name: Create or update Version Packages PR
+        # if this push is NOT merging a version packages PR, then we update/create the version packages PR
+        if: ${{ steps.is_version_packages_commit.outputs.is_version_packages_commit == 'false' }}
+        uses: changesets/action@f13b1baaa620fde937751f5d2c3572b9da32af23 # version 1.4.5
+        with:
+          createGithubReleases: false
+          # this should never be called, but if something happens and it does get called, this ensures that a premature publish won't happen
+          publish: echo Cannot publish during update version step
+        env:
+          # we are also omitting the NPM_TOKEN here to eliminate the possibility of publishing to NPM during this step
+          # we still need the GITHUB_TOKEN so that the version packages PR can be updated
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  publish_package_versions:
+    if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'hotfix') }}
     needs:
       - test_with_coverage
       - e2e_package_manager
@@ -327,13 +355,21 @@ jobs:
       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # version 3.6.0
       - uses: ./.github/actions/setup_node
       - uses: ./.github/actions/restore_build_cache
-      - name: Create release pull request or publish to npm
+      - id: is_version_packages_commit
+        run: npx tsx scripts/is_version_packages_commit.ts "$GITHUB_EVENT_PATH" >> "$GITHUB_OUTPUT"
+      - name: Publish packages
+        # if this push is merging a version packages PR, then we publish the new versions
+        if: ${{ steps.is_version_packages_commit.outputs.is_version_packages_commit == 'true' }}
+        id: changeset_publish
         uses: changesets/action@f13b1baaa620fde937751f5d2c3572b9da32af23 # version 1.4.5
         with:
           publish: npm run publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Update hotfix branch
+        if: ${{ steps.changeset_publish.outputs.published == 'true' && github.ref_name == 'main' }}
+        run: git push origin main:hotfix --force
   codeql:
     runs-on: ubuntu-latest
     permissions:

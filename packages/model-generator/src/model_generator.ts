@@ -26,6 +26,8 @@ export type GraphqlDocumentGenerator = {
 export type TypesGenerationParameters = {
   target: TypesTarget;
   multipleSwiftFiles?: boolean;
+  maxDepth?: number;
+  typenameIntrospection?: boolean;
 };
 export type GraphqlTypesGenerator = {
   generateTypes: (
@@ -38,7 +40,7 @@ export type ModelsGenerationParameters = {
   generateIndexRules?: boolean;
   emitAuthProvider?: boolean;
   useExperimentalPipelinedTransformer?: boolean;
-  transformerVersion?: boolean;
+  transformerVersion?: number;
   respectPrimaryKeyAttributesOnConnectionField?: boolean;
   generateModelsForLazyLoadAndCustomSelectionSet?: boolean;
   addTimestampFields?: boolean;

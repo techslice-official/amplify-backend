@@ -1,4 +1,80 @@
-# @aws-amplify/auth-construct-alpha
+# @aws-amplify/auth-construct
+
+## 0.7.1
+
+### Patch Changes
+
+- c93ecde: Add oauth client config even if no external provider is configured
+- Updated dependencies [8995e3b]
+- Updated dependencies [ce5a5ac]
+  - @aws-amplify/plugin-types@0.10.0
+  - @aws-amplify/backend-output-storage@0.4.1
+
+## 0.7.0
+
+### Minor Changes
+
+- 74d2cd4: drop alpha suffix from auth-construct package
+
+### Patch Changes
+
+- a3c93c6: Add support for customizing user invitation settings.
+- c637d0e: Disable implicit grant oauth flows by default.
+
+## 0.6.1
+
+### Patch Changes
+
+- d558832: Update sms and mfa types to use code generation functions instead of strings.
+
+## 0.6.0
+
+### Minor Changes
+
+- 4995bda: Introduce initial iteration of access control mechanism between backend resources.
+  The APIs and functioality are NOT final and are subject to change without notice.
+- 85e953f: OIDC now supports a list of providers which will be configured for your user pool.
+
+### Patch Changes
+
+- ab7533d: Add output and configuration for customer owned lambdas
+- 7cbe58b: bump aws-cdk-lib to 2.127.0
+- 1e93535: chore: auto-generate cognito domain when external providers are configured
+- 109cd1b: Add support for generating user pool groups.
+- 65b516d: fix: MFA types to not require sms settings if turned off
+- 1d444df: Fix deployment bug with SAML providers.
+- 394b72e: chore: updates to client config schema and config generation
+- fe59a49: This change adds support for customizing the email verification link text.
+- c54625f: Update frontend config to output OIDC provider names instead of just 'OIDC'.
+- 3cb2a52: Fix a bug that would cause attribute mappings to be ignored.
+- 1b8386b: Auth user attribute mappings have been simplified to use strings instead of objects with an attributeName property.
+- Updated dependencies [ab7533d]
+- Updated dependencies [697d791]
+- Updated dependencies [7cbe58b]
+- Updated dependencies [1e93535]
+- Updated dependencies [109cd1b]
+- Updated dependencies [db23a3f]
+- Updated dependencies [4995bda]
+- Updated dependencies [5e12247]
+- Updated dependencies [48ff3bd]
+  - @aws-amplify/backend-output-schemas@0.7.0
+  - @aws-amplify/backend-output-storage@0.4.0
+  - @aws-amplify/plugin-types@0.9.0
+
+## 0.6.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [db23a3f]
+  - @aws-amplify/plugin-types@0.9.0-beta.3
+  - @aws-amplify/backend-output-storage@0.4.0-beta.8
+
+## 0.6.0-beta.12
+
+### Patch Changes
+
+- 65b516d: fix: MFA types to not require sms settings if turned off
+  - @aws-amplify/backend-output-storage@0.4.0-beta.7
 
 ## 0.6.0-beta.11
 

@@ -23,9 +23,9 @@ void describe('sandbox_event_handler_factory', () => {
   } as unknown as ClientConfigGeneratorAdapter;
   const clientConfigLifecycleHandler = new ClientConfigLifecycleHandler(
     clientConfigGeneratorAdapterMock,
-    '0',
+    '1',
     'test-out',
-    ClientConfigFormat.MJS
+    ClientConfigFormat.JSON
   );
 
   // Usage data emitter mocks
@@ -49,6 +49,7 @@ void describe('sandbox_event_handler_factory', () => {
   );
 
   afterEach(() => {
+    printMock.mock.resetCalls();
     emitSuccessMock.mock.resetCalls();
     emitFailureMock.mock.resetCalls();
     generateClientConfigMock.mock.resetCalls();
@@ -72,9 +73,9 @@ void describe('sandbox_event_handler_factory', () => {
         namespace: 'test',
         name: 'name',
       },
-      '0',
+      '1',
       'test-out',
-      'mjs',
+      'json',
     ]);
 
     assert.strictEqual(emitSuccessMock.mock.callCount(), 1);
@@ -178,7 +179,7 @@ void describe('sandbox_event_handler_factory', () => {
 
     assert.deepStrictEqual(
       printMock.mock.calls[1].arguments[0],
-      format.error('test error message')
+      format.error(new Error('test error message'))
     );
 
     assert.deepEqual(generateClientConfigMock.mock.calls[0].arguments, [
@@ -187,9 +188,9 @@ void describe('sandbox_event_handler_factory', () => {
         namespace: 'test',
         name: 'name',
       },
-      '0',
+      '1',
       'test-out',
-      'mjs',
+      'json',
     ]);
 
     // No metrics emitted
@@ -216,7 +217,7 @@ void describe('sandbox_event_handler_factory', () => {
     assert.strictEqual(fspMock.mock.callCount(), 1);
     assert.deepStrictEqual(
       fspMock.mock.calls[0].arguments[0],
-      path.join(process.cwd(), 'test-out', 'amplifyconfiguration.mjs')
+      path.join(process.cwd(), 'test-out', 'amplify_outputs.json')
     );
 
     // No metrics emitted as of now

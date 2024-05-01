@@ -1,4 +1,5 @@
 import { ArgumentsCamelCase, Argv, CommandModule } from 'yargs';
+import fs from 'fs';
 import fsp from 'fs/promises';
 import { AmplifyPrompter } from '@aws-amplify/cli-core';
 import { SandboxSingletonFactory } from '@techslice-official/sandbox';
@@ -7,6 +8,7 @@ import {
   ClientConfigVersion,
   ClientConfigVersionOption,
   DEFAULT_CLIENT_CONFIG_VERSION,
+  generateEmptyClientConfigToFile,
   getClientConfigFileName,
   getClientConfigPath,
 } from '@aws-amplify/client-config';
@@ -20,9 +22,10 @@ export type SandboxCommandOptionsKebabCase = ArgumentsKebabCase<
   {
     dirToWatch: string | undefined;
     exclude: string[] | undefined;
-    configFormat: ClientConfigFormat | undefined;
-    configOutDir: string | undefined;
-    configVersion: string;
+    outputsFormat: ClientConfigFormat | undefined;
+    outputsOutDir: string | undefined;
+    outputsVersion: string;
+    once: boolean | undefined;
   } & SandboxCommandGlobalOptions
 >;
 
@@ -72,7 +75,8 @@ export class SandboxCommand
     private readonly sandboxEventHandlerCreator?: SandboxEventHandlerCreator
   ) {
     this.command = 'sandbox';
-    this.describe = 'Starts sandbox, watch mode for amplify deployments';
+    this.describe =
+      'Starts sandbox, watch mode for Amplify backend deployments';
   }
 
   /**
@@ -87,9 +91,9 @@ export class SandboxCommand
     // attaching event handlers
     const clientConfigLifecycleHandler = new ClientConfigLifecycleHandler(
       this.clientConfigGeneratorAdapter,
-      args.configVersion as ClientConfigVersion,
-      args.configOutDir,
-      args.configFormat
+      args.outputsVersion as ClientConfigVersion,
+      args.outputsOutDir,
+      args.outputsFormat
     );
     const eventHandlers = this.sandboxEventHandlerCreator?.({
       sandboxIdentifier: this.sandboxIdentifier,
@@ -102,19 +106,29 @@ export class SandboxCommand
     }
     const watchExclusions = args.exclude ?? [];
     const fileName = getClientConfigFileName(
-      args.configVersion as ClientConfigVersion
+      args.outputsVersion as ClientConfigVersion
     );
     const clientConfigWritePath = await getClientConfigPath(
       fileName,
-      args.configOutDir,
-      args.configFormat
+      args.outputsOutDir,
+      args.outputsFormat
     );
+
+    if (!fs.existsSync(clientConfigWritePath)) {
+      await generateEmptyClientConfigToFile(
+        args.outputsVersion as ClientConfigVersion,
+        args.outputsOutDir,
+        args.outputsFormat
+      );
+    }
+
     watchExclusions.push(clientConfigWritePath);
     await sandbox.start({
       dir: args.dirToWatch,
       exclude: watchExclusions,
       identifier: args.identifier,
       profile: args.profile,
+      watchForChanges: !args.once,
     });
     process.once('SIGINT', () => void this.sigIntHandler());
   };
@@ -148,24 +162,25 @@ export class SandboxCommand
           type: 'string',
           array: false,
         })
-        .option('config-format', {
-          describe: 'Client config output format',
+        .option('outputs-format', {
+          describe: 'amplify_outputs file format',
           type: 'string',
           array: false,
           choices: Object.values(ClientConfigFormat),
           global: false,
         })
-        .option('config-version', {
-          describe: 'Client config format version',
+        .option('outputs-version', {
+          describe:
+            'Version of the configuration. Version 0 represents classic amplify-cli config file amplify-configuration and 1 represents newer config file amplify_outputs',
           type: 'string',
           array: false,
           choices: Object.values(ClientConfigVersionOption),
           global: false,
           default: DEFAULT_CLIENT_CONFIG_VERSION,
         })
-        .option('config-out-dir', {
+        .option('outputs-out-dir', {
           describe:
-            'A path to directory where config is written. If not provided defaults to current process working directory.',
+            'A path to directory where amplify_outputs is written. If not provided defaults to current process working directory.',
           type: 'string',
           array: false,
           global: false,
@@ -174,6 +189,12 @@ export class SandboxCommand
           describe: 'An AWS profile name.',
           type: 'string',
           array: false,
+        })
+        .option('once', {
+          describe:
+            'Execute a single sandbox deployment without watching for future file changes',
+          boolean: true,
+          global: false,
         })
         .check(async (argv) => {
           if (argv['dir-to-watch']) {
@@ -189,6 +210,7 @@ export class SandboxCommand
           }
           return true;
         })
+        .conflicts('once', ['exclude', 'dir-to-watch'])
         .middleware([this.commandMiddleware.ensureAwsCredentialAndRegion])
     );
   };

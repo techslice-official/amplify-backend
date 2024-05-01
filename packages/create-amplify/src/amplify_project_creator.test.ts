@@ -4,6 +4,7 @@ import assert from 'assert';
 import { PackageManagerController } from '@aws-amplify/plugin-types';
 import { AmplifyProjectCreator } from './amplify_project_creator.js';
 import { printer } from '@aws-amplify/cli-core';
+import { EOL } from 'os';
 
 const logSpy = mock.method(printer, 'log');
 const indicateProgressSpy = mock.method(printer, 'indicateProgress');
@@ -16,7 +17,6 @@ void describe('AmplifyProjectCreator', () => {
 
   void it('create project if passing `--yes` or `-y` to `npm create`', async () => {
     const packageManagerControllerMock = {
-      getWelcomeMessage: mock.fn(() => ''),
       initializeProject: mock.fn(() => Promise.resolve()),
       initializeTsConfig: mock.fn(() => Promise.resolve()),
       installDependencies: mock.fn(() => Promise.resolve()),
@@ -82,14 +82,18 @@ void describe('AmplifyProjectCreator', () => {
       logSpy.mock.calls[13].arguments[0],
       `Navigate to your project directory using ${cyan(
         'cd .testProjectRoot'
-      )} and then:`
+      )} and then:${EOL} - Get started by running ${cyan(
+        'npx ampx sandbox'
+      )}.${EOL} - Run ${cyan(
+        'npx ampx help'
+      )} for a list of available commands.`
     );
 
     assert.equal(
       logSpy.mock.calls[14].arguments[0],
       grey(
         `Amplify (Gen 2) collects anonymous telemetry data about general usage of the CLI. Participation is optional, and you may opt-out by using ${cyan(
-          'npx amplify configure telemetry disable'
+          'npx ampx configure telemetry disable'
         )}. To learn more about telemetry, visit ${underline(
           blue('https://docs.amplify.aws/gen2/reference/telemetry')
         )}`
@@ -99,7 +103,6 @@ void describe('AmplifyProjectCreator', () => {
 
   void it('should instruct users to use the custom project root', async () => {
     const packageManagerControllerMock: PackageManagerController = {
-      getWelcomeMessage: mock.fn(() => ''),
       initializeProject: mock.fn(() => Promise.resolve()),
       initializeTsConfig: mock.fn(() => Promise.resolve()),
       installDependencies: mock.fn(() => Promise.resolve()),
@@ -124,14 +127,18 @@ void describe('AmplifyProjectCreator', () => {
       logSpy.mock.calls[13].arguments[0],
       `Navigate to your project directory using ${cyan(
         'cd .testProjectRoot'
-      )} and then:`
+      )} and then:${EOL} - Get started by running ${cyan(
+        'npx ampx sandbox'
+      )}.${EOL} - Run ${cyan(
+        'npx ampx help'
+      )} for a list of available commands.`
     );
 
     assert.equal(
       logSpy.mock.calls[14].arguments[0],
       grey(
         `Amplify (Gen 2) collects anonymous telemetry data about general usage of the CLI. Participation is optional, and you may opt-out by using ${cyan(
-          'npx amplify configure telemetry disable'
+          'npx ampx configure telemetry disable'
         )}. To learn more about telemetry, visit ${underline(
           blue('https://docs.amplify.aws/gen2/reference/telemetry')
         )}`
