@@ -9,6 +9,7 @@
 import { BackendIdentifier } from '@aws-amplify/plugin-types';
 import { ClientConfigFormat } from '@aws-amplify/client-config';
 import EventEmitter from 'events';
+import { Format } from '@aws-amplify/cli-core';
 import { Printer } from '@aws-amplify/cli-core';
 
 // @public (undocumented)
@@ -36,11 +37,12 @@ export type SandboxOptions = {
     identifier?: string;
     format?: ClientConfigFormat;
     profile?: string;
+    watchForChanges?: boolean;
 };
 
 // @public
 export class SandboxSingletonFactory {
-    constructor(sandboxIdResolver: BackendIdSandboxResolver, printer: Printer);
+    constructor(sandboxIdResolver: BackendIdSandboxResolver, printer: Printer, format: Format);
     getInstance: () => Promise<Sandbox>;
 }
 

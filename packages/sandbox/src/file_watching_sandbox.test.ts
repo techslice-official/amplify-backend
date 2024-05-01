@@ -9,14 +9,16 @@ import {
 } from './file_watching_sandbox.js';
 import assert from 'node:assert';
 import { AmplifySandboxExecutor } from './sandbox_executor.js';
-import { BackendDeployerFactory } from '@techslice-official/backend-deployer';
+import {
+  BackendDeployerFactory,
+  BackendDeployerOutputFormatter,
+} from '@techslice-official/backend-deployer';
 import fs from 'fs';
 import parseGitIgnore from 'parse-gitignore';
 import { CloudFormationClient } from '@aws-sdk/client-cloudformation';
 import _open from 'open';
 import { SecretListItem, getSecretClient } from '@aws-amplify/backend-secret';
-import { ClientConfigFormat } from '@aws-amplify/client-config';
-import { Sandbox } from './sandbox.js';
+import { Sandbox, SandboxOptions } from './sandbox.js';
 import {
   AmplifyPrompter,
   LogLevel,
@@ -37,8 +39,13 @@ const packageManagerControllerFactory = new PackageManagerControllerFactory(
   process.cwd(),
   new Printer(LogLevel.DEBUG)
 );
+const formatterStub: BackendDeployerOutputFormatter = {
+  normalizeBackendCommand: () => 'test command',
+};
+
 const backendDeployerFactory = new BackendDeployerFactory(
-  packageManagerControllerFactory.getPackageManagerController()
+  packageManagerControllerFactory.getPackageManagerController(),
+  formatterStub
 );
 const backendDeployer = backendDeployerFactory.getInstance();
 
@@ -251,6 +258,7 @@ void describe('Sandbox using local project name resolver', () => {
         executor: sandboxExecutor,
         cfnClient: cfnClientMock,
       },
+      undefined,
       false
     ));
     assert.strictEqual(printer.log.mock.callCount(), 7);
@@ -272,6 +280,8 @@ void describe('Sandbox using local project name resolver', () => {
       {
         executor: sandboxExecutor,
         cfnClient: cfnClientMock,
+      },
+      {
         // imaginary dir does not have any ts files
         dir: 'testDir',
         exclude: ['exclude1', 'exclude2'],
@@ -300,6 +310,8 @@ void describe('Sandbox using local project name resolver', () => {
       {
         executor: sandboxExecutor,
         cfnClient: cfnClientMock,
+      },
+      {
         dir: testDir,
         exclude: ['exclude1', 'exclude2'],
       },
@@ -320,12 +332,16 @@ void describe('Sandbox using local project name resolver', () => {
   });
 
   void it('calls BackendDeployer once when a file change is present', async () => {
-    ({ sandboxInstance, fileChangeEventCallback } = await setupAndStartSandbox({
-      executor: sandboxExecutor,
-      cfnClient: cfnClientMock,
-      dir: 'testDir',
-      exclude: ['exclude1', 'exclude2'],
-    }));
+    ({ sandboxInstance, fileChangeEventCallback } = await setupAndStartSandbox(
+      {
+        executor: sandboxExecutor,
+        cfnClient: cfnClientMock,
+      },
+      {
+        dir: 'testDir',
+        exclude: ['exclude1', 'exclude2'],
+      }
+    ));
     await fileChangeEventCallback(null, [
       { type: 'update', path: 'foo/test1.ts' },
     ]);
@@ -650,12 +666,16 @@ void describe('Sandbox using local project name resolver', () => {
   });
 
   void it('handles error thrown by BackendDeployer and terminate while destroying', async (contextual) => {
-    ({ sandboxInstance } = await setupAndStartSandbox({
-      executor: sandboxExecutor,
-      cfnClient: cfnClientMock,
-      dir: 'testDir',
-      exclude: ['exclude1', 'exclude2'],
-    }));
+    ({ sandboxInstance } = await setupAndStartSandbox(
+      {
+        executor: sandboxExecutor,
+        cfnClient: cfnClientMock,
+      },
+      {
+        dir: 'testDir',
+        exclude: ['exclude1', 'exclude2'],
+      }
+    ));
     const contextualBackendDeployerMock = contextual.mock.method(
       backendDeployer,
       'destroy',
@@ -671,11 +691,13 @@ void describe('Sandbox using local project name resolver', () => {
   });
 
   void it('correctly handles user provided appName while deploying', async () => {
-    ({ sandboxInstance, fileChangeEventCallback } = await setupAndStartSandbox({
-      executor: sandboxExecutor,
-      cfnClient: cfnClientMock,
-      name: 'customSandboxName',
-    }));
+    ({ sandboxInstance, fileChangeEventCallback } = await setupAndStartSandbox(
+      {
+        executor: sandboxExecutor,
+        cfnClient: cfnClientMock,
+      },
+      { identifier: 'customSandboxName' }
+    ));
     await fileChangeEventCallback(null, [
       { type: 'update', path: 'foo/test1.ts' },
     ]);
@@ -699,11 +721,13 @@ void describe('Sandbox using local project name resolver', () => {
   });
 
   void it('correctly handles user provided appName while destroying', async () => {
-    ({ sandboxInstance } = await setupAndStartSandbox({
-      executor: sandboxExecutor,
-      cfnClient: cfnClientMock,
-      name: 'customSandboxName',
-    }));
+    ({ sandboxInstance } = await setupAndStartSandbox(
+      {
+        executor: sandboxExecutor,
+        cfnClient: cfnClientMock,
+      },
+      { identifier: 'customSandboxName' }
+    ));
     await sandboxInstance.delete({ identifier: 'customSandboxName' });
 
     // BackendDeployer should be called once
@@ -732,11 +756,15 @@ void describe('Sandbox using local project name resolver', () => {
         ],
       };
     });
-    ({ sandboxInstance, fileChangeEventCallback } = await setupAndStartSandbox({
-      executor: sandboxExecutor,
-      cfnClient: cfnClientMock,
-      exclude: ['customer_exclude1', 'customer_exclude2'],
-    }));
+    ({ sandboxInstance, fileChangeEventCallback } = await setupAndStartSandbox(
+      {
+        executor: sandboxExecutor,
+        cfnClient: cfnClientMock,
+      },
+      {
+        exclude: ['customer_exclude1', 'customer_exclude2'],
+      }
+    ));
     await fileChangeEventCallback(null, [
       { type: 'update', path: 'foo/test1.ts' },
     ]);
@@ -773,11 +801,15 @@ void describe('Sandbox using local project name resolver', () => {
         ],
       };
     });
-    ({ sandboxInstance, fileChangeEventCallback } = await setupAndStartSandbox({
-      executor: sandboxExecutor,
-      cfnClient: cfnClientMock,
-      exclude: ['customer_exclude1', 'customer_exclude2'],
-    }));
+    ({ sandboxInstance, fileChangeEventCallback } = await setupAndStartSandbox(
+      {
+        executor: sandboxExecutor,
+        cfnClient: cfnClientMock,
+      },
+      {
+        exclude: ['customer_exclude1', 'customer_exclude2'],
+      }
+    ));
     await fileChangeEventCallback(null, [
       { type: 'update', path: 'foo/test1.ts' },
     ]);
@@ -829,6 +861,18 @@ void describe('Sandbox using local project name resolver', () => {
 
     assert.equal(mockListener.mock.callCount(), 1);
   });
+
+  void it('should trigger single deployment without watcher if watchForChanges is false', async () => {
+    await setupAndStartSandbox(
+      {
+        executor: sandboxExecutor,
+        cfnClient: cfnClientMock,
+      },
+      { watchForChanges: false }
+    );
+
+    assert.strictEqual(subscribeMock.mock.callCount(), 0);
+  });
 });
 
 /**
@@ -840,6 +884,7 @@ void describe('Sandbox using local project name resolver', () => {
  */
 const setupAndStartSandbox = async (
   testData: SandboxTestData,
+  sandboxOptions: SandboxOptions = {},
   resetMocksAfterStart = true
 ) => {
   const sandboxInstance = new FileWatchingSandbox(
@@ -854,18 +899,30 @@ const setupAndStartSandbox = async (
     testData.open ?? _open
   );
 
-  await sandboxInstance.start({
-    dir: testData.dir,
-    exclude: testData.exclude,
-    identifier: testData.name,
-    format: testData.format,
-    profile: testData.profile,
-  });
+  await sandboxInstance.start(sandboxOptions);
 
   // At this point one deployment should already have been done on sandbox startup
   assert.strictEqual(backendDeployerDeployMock.mock.callCount(), 1);
   // and client config generated only once
 
+  if (resetMocksAfterStart) {
+    // Reset all the calls to avoid extra startup call
+    backendDeployerDestroyMock.mock.resetCalls();
+    backendDeployerDeployMock.mock.resetCalls();
+    cfnClientSendMock.mock.resetCalls();
+    listSecretMock.mock.resetCalls();
+  }
+
+  if (sandboxOptions.watchForChanges === false) {
+    return {
+      sandboxInstance,
+      fileChangeEventCallback: () => {
+        throw new Error(
+          'When not watching for changes, file change event callback is not available'
+        );
+      },
+    };
+  }
   /**
    * For each test we start the sandbox and hence file watcher and get hold of
    * file change event function which tests can simulate by calling as desired.
@@ -882,14 +939,6 @@ const setupAndStartSandbox = async (
     );
   }
 
-  if (resetMocksAfterStart) {
-    // Reset all the calls to avoid extra startup call
-    backendDeployerDestroyMock.mock.resetCalls();
-    backendDeployerDeployMock.mock.resetCalls();
-    cfnClientSendMock.mock.resetCalls();
-    listSecretMock.mock.resetCalls();
-  }
-
   return { sandboxInstance, fileChangeEventCallback };
 };
 
@@ -899,11 +948,4 @@ type SandboxTestData = {
   executor: AmplifySandboxExecutor;
   cfnClient: CloudFormationClient;
   open?: typeof _open;
-
-  // To start sandbox
-  dir?: string;
-  exclude?: string[];
-  name?: string;
-  format?: ClientConfigFormat;
-  profile?: string;
 };

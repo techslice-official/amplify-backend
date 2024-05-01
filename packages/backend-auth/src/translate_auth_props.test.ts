@@ -7,14 +7,14 @@ import {
 import { describe, it } from 'node:test';
 import { AuthLoginWithFactoryProps } from './types.js';
 import { Construct } from 'constructs';
-import { AuthProps, PhoneNumberLogin } from '@aws-amplify/auth-construct-alpha';
+import { AuthProps, PhoneNumberLogin } from '@aws-amplify/auth-construct';
 import { SecretValue } from 'aws-cdk-lib';
 import assert from 'node:assert';
 import { translateToAuthConstructLoginWith } from './translate_auth_props.js';
 import { ParameterPathConversions } from '@aws-amplify/platform-core';
 
 const phone: PhoneNumberLogin = {
-  verificationMessage: (code: string) => `text${code}text2`,
+  verificationMessage: (createCode: () => string) => `text${createCode()}text2`,
 };
 const googleClientId = 'googleId';
 const googleClientSecret = 'googleSecret';

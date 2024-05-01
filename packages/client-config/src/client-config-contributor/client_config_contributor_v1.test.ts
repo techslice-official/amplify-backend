@@ -19,7 +19,15 @@ import {
   storageOutputKey,
 } from '@aws-amplify/backend-output-schemas';
 import { ModelIntrospectionSchemaAdapter } from '../model_introspection_schema_adapter.js';
-import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+import { S3Client } from '@aws-sdk/client-s3';
+import { AmplifyClient } from '@aws-sdk/client-amplify';
+import { CloudFormationClient } from '@aws-sdk/client-cloudformation';
+
+const stubClientProvider = {
+  getS3Client: () => new S3Client(),
+  getAmplifyClient: () => new AmplifyClient(),
+  getCloudFormationClient: () => new CloudFormationClient(),
+};
 
 void describe('auth client config contributor v1', () => {
   void it('returns an empty object if output has no auth output', () => {
@@ -145,7 +153,70 @@ void describe('auth client config contributor v1', () => {
           user_verification_types: ['email', 'phone_number'],
           oauth: {
             identity_providers: ['GOOGLE', 'FACEBOOK'],
-            cognito_domain: 'testDomain',
+            domain: 'testDomain',
+            scopes: ['email', 'profile'],
+            redirect_sign_in_uri: [
+              'http://callback.com',
+              'http://callback2.com',
+            ],
+            redirect_sign_out_uri: ['http://logout.com', 'http://logout2.com'],
+            response_type: 'code',
+          },
+        },
+      } as Partial<clientConfigTypesV1.AWSAmplifyBackendOutputs>
+    );
+  });
+
+  void it('returns translated config when output has oauth settings but no social providers', () => {
+    const contributor = new AuthClientConfigContributor();
+    assert.deepStrictEqual(
+      contributor.contribute({
+        [authOutputKey]: {
+          version: '1',
+          payload: {
+            identityPoolId: 'testIdentityPoolId',
+            userPoolId: 'testUserPoolId',
+            webClientId: 'testWebClientId',
+            authRegion: 'testRegion',
+            passwordPolicyMinLength: '15',
+            passwordPolicyRequirements:
+              '["REQUIRES_NUMBERS","REQUIRES_LOWERCASE","REQUIRES_UPPERCASE"]',
+            mfaTypes: '["SMS","TOTP"]',
+            mfaConfiguration: 'OPTIONAL',
+            verificationMechanisms: '["email","phone_number"]',
+            usernameAttributes: '["email"]',
+            signupAttributes: '["email"]',
+            allowUnauthenticatedIdentities: 'true',
+            oauthClientId: 'testWebClientId', // same as webClientId
+            oauthCognitoDomain: 'testDomain',
+            oauthScope: '["email","profile"]',
+            oauthRedirectSignIn: 'http://callback.com,http://callback2.com',
+            oauthRedirectSignOut: 'http://logout.com,http://logout2.com',
+            oauthResponseType: 'code',
+          },
+        },
+      }),
+      {
+        auth: {
+          user_pool_id: 'testUserPoolId',
+          user_pool_client_id: 'testWebClientId',
+          aws_region: 'testRegion',
+          identity_pool_id: 'testIdentityPoolId',
+          unauthenticated_identities_enabled: true,
+          mfa_configuration: 'OPTIONAL',
+          mfa_methods: ['SMS', 'TOTP'],
+          password_policy: {
+            require_lowercase: true,
+            require_numbers: true,
+            require_uppercase: true,
+            min_length: 15,
+          },
+          standard_required_attributes: ['email'],
+          username_attributes: ['email'],
+          user_verification_types: ['email', 'phone_number'],
+          oauth: {
+            identity_providers: [],
+            domain: 'testDomain',
             scopes: ['email', 'profile'],
             redirect_sign_in_uri: [
               'http://callback.com',
@@ -163,7 +234,7 @@ void describe('auth client config contributor v1', () => {
 void describe('data client config contributor v1', () => {
   void it('returns an empty object if output has no graphql output', async () => {
     const modelSchemaAdapter = new ModelIntrospectionSchemaAdapter(
-      fromNodeProviderChain()
+      stubClientProvider
     );
 
     mock.method(
@@ -189,7 +260,7 @@ void describe('data client config contributor v1', () => {
 
   void it('returns translated config when output has graphql', async () => {
     const modelSchemaAdapter = new ModelIntrospectionSchemaAdapter(
-      fromNodeProviderChain()
+      stubClientProvider
     );
 
     mock.method(
@@ -226,7 +297,7 @@ void describe('data client config contributor v1', () => {
 
   void it('returns translated config with model introspection when resolvable', async () => {
     const modelSchemaAdapter = new ModelIntrospectionSchemaAdapter(
-      fromNodeProviderChain()
+      stubClientProvider
     );
 
     mock.method(
